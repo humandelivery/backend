@@ -12,7 +12,7 @@ public class CreateTaxiRequest {
 
 	private String model;
 
-	@ValidEnum(enumClass = FuelType.class, message = "지원하지 않는 연료 타입입니다.")
+	@ValidEnum(enumClass = TaxiType.class, message = "지원하지 않는 연료 타입입니다.")
     private String taxiType;
 
 	private String plateNumber;

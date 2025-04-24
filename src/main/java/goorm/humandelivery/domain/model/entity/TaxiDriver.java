@@ -50,13 +50,14 @@ public class TaxiDriver extends BaseEntity {
 	private TaxiDriverStatus status;
 
 	@Builder
-	private TaxiDriver(Taxi taxi, String loginId, String password, String name, String licenseCode, String phoneNumber) {
+	private TaxiDriver(Taxi taxi, String loginId, String password, String name, String licenseCode, String phoneNumber, TaxiDriverStatus status) {
 		this.taxi = taxi;
 		this.loginId = loginId;
 		this.password = password;
 		this.name = name;
 		this.licenseCode = licenseCode;
 		this.phoneNumber = phoneNumber;
+		this.status = status;
 	}
 
 	public boolean isSamePassword(String rawPassword, PasswordEncoder passwordEncoder) {

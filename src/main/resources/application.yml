@@ -5,13 +5,6 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
-jwt:
-  secret:
-    access: "sadpofjaosdjfoapsjdfjaksopdjfpjaskopdjfopasjdpofjapsodfjapsodjfpaoksdjf"
-    refresh: "3600000"
-
-
-
   jpa:
     hibernate:
       ddl-auto: create
@@ -29,7 +22,6 @@ jwt:
   sql:
     init:
       mode: always
-
 # 내장 h2 사용 시 (주석처리된 부분은 참고용입니다)
 #  datasource:
 #    url: ${DB_URL:jdbc:h2:mem:데이터베이스명}
@@ -40,6 +32,14 @@ jwt:
 
 #  datasource:
 #    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+
+
+jwt:
+  secret:
+    access: ${JWT_SECRET_ACCESS}
+    # springboot 가 지원하는 Duration 타입
+    accessTokenValidTime:  ${JWT_SECRET_ACCESS_DURATION}
+
 
 logging:
   level:

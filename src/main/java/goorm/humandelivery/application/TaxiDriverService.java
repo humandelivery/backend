@@ -8,6 +8,7 @@ import goorm.humandelivery.common.exception.IncorrectPasswordException;
 import goorm.humandelivery.domain.model.entity.FuelType;
 import goorm.humandelivery.domain.model.entity.Taxi;
 import goorm.humandelivery.domain.model.entity.TaxiDriver;
+import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.request.CreateTaxiDriverRequest;
 import goorm.humandelivery.domain.model.request.CreateTaxiRequest;
@@ -91,6 +92,7 @@ public class TaxiDriverService {
 			.name(request.getName())
 			.licenseCode(request.getLicenseCode())
 			.phoneNumber(request.getPhoneNumber())
+			.status(TaxiDriverStatus.OFF_DUTY)
 			.build();
 
 		// DB에 저장

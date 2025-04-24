@@ -1,5 +1,6 @@
 package goorm.humandelivery.domain.model.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,7 +27,7 @@ public class CreateTaxiDriverRequest {
 	@NotBlank
 	private String phoneNumber;
 
-	@NotNull
+	@Valid
 	private CreateTaxiRequest taxi;
 
 

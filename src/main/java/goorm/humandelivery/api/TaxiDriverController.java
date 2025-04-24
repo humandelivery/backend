@@ -1,9 +1,16 @@
 package goorm.humandelivery.api;
 
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,6 +20,7 @@ import goorm.humandelivery.domain.model.request.CreateTaxiDriverRequest;
 import goorm.humandelivery.domain.model.request.LoginTaxiDriverRequest;
 import goorm.humandelivery.domain.model.response.JwtResponse;
 import goorm.humandelivery.domain.model.response.TaxiDriverResponse;
+import goorm.humandelivery.domain.model.response.TokenInfoResponse;
 import jakarta.validation.Valid;
 
 @RestController
@@ -30,10 +38,22 @@ public class TaxiDriverController {
 
 	// 회원가입
 	@PostMapping
-	public ResponseEntity<TaxiDriverResponse> register(@RequestBody @Valid CreateTaxiDriverRequest taxiDriverRequest) {
+	public ResponseEntity<?> register(@RequestBody @Valid CreateTaxiDriverRequest taxiDriverRequest,
+		BindingResult bindingResult) {
+
+		// 밸리데이션 응답 추가.
+		if (bindingResult.hasErrors()) {
+			List<String> fieldErrors = bindingResult.getFieldErrors()
+				.stream()
+				.map(FieldError::getDefaultMessage)
+				.toList();
+
+			return ResponseEntity.badRequest().body(Map.of(
+				"errors", fieldErrors
+			));
+		}
 
 		TaxiDriverResponse response = taxiDriverService.register(taxiDriverRequest);
-
 		return ResponseEntity.ok(response);
 	}
 
@@ -48,5 +68,13 @@ public class TaxiDriverController {
 		String token = jwtUtil.generateToken(loginTaxiDriverRequest.getLoginId());
 
 		return ResponseEntity.ok(new JwtResponse(token));
+	}
+
+	// 토큰 확인
+	@GetMapping("/token-info")
+	public ResponseEntity<?> getMyInfo(@RequestHeader("Authorization") String authHeader) {
+		String token = authHeader.replace("Bearer ", "");
+		TokenInfoResponse tokenInfoResponse = jwtUtil.extractTokenInfo(token);
+		return ResponseEntity.ok(tokenInfoResponse);
 	}
 }
