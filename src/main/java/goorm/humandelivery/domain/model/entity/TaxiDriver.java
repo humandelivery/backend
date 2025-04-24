@@ -1,5 +1,7 @@
 package goorm.humandelivery.domain.model.entity;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -57,4 +59,7 @@ public class TaxiDriver extends BaseEntity {
 		this.phoneNumber = phoneNumber;
 	}
 
+	public boolean isSamePassword(String rawPassword, PasswordEncoder passwordEncoder) {
+		return passwordEncoder.matches(rawPassword, password);
+	}
 }
