@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.NoArgsConstructor;
 
 @Entity
@@ -29,4 +30,11 @@ public class Taxi extends BaseEntity {
 	@Enumerated(value = EnumType.STRING)
 	private FuelType fuelType;
 
+	@Builder
+	private Taxi(String model, TaxiType taxiType, String plateNumber, FuelType fuelType) {
+		this.model = model;
+		this.taxiType = taxiType;
+		this.plateNumber = plateNumber;
+		this.fuelType = fuelType;
+	}
 }
