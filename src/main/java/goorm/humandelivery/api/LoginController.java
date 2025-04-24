@@ -13,7 +13,7 @@ import goorm.humandelivery.domain.model.request.CreateTaxiDriverRequest;
 import goorm.humandelivery.domain.model.request.LoginTaxiDriverRequest;
 
 @Controller
-@RequestMapping("/login")
+@RequestMapping("api/v1/login")
 public class LoginController {
 
 	private final CustomerService customerService;
