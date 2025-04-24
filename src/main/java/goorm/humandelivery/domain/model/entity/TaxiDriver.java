@@ -10,11 +10,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class TaxiDriver extends BaseEntity {
 
 	@Id
@@ -26,6 +29,7 @@ public class TaxiDriver extends BaseEntity {
 	@JoinColumn(name = "taxi_id")
 	private Taxi taxi;
 
+	@Column(unique = true)
 	private String loginId;
 
 	private String password;
