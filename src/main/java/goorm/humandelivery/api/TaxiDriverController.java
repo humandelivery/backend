@@ -7,21 +7,31 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import goorm.humandelivery.application.CustomerService;
 import goorm.humandelivery.application.TaxiDriverService;
 import goorm.humandelivery.domain.model.request.CreateTaxiDriverRequest;
-import goorm.humandelivery.domain.model.request.LoginTaxiDriverRequest;
+import goorm.humandelivery.domain.model.response.TaxiDriverResponse;
 
 @Controller
-@RequestMapping("/login")
-public class LoginController {
+@RequestMapping("/api/v1/taxi-driver")
+public class TaxiDriverController {
 
-	private final CustomerService customerService;
 	private final TaxiDriverService taxiDriverService;
 
 	@Autowired
-	public LoginController(CustomerService customerService, TaxiDriverService taxiDriverService) {
-		this.customerService = customerService;
+	public TaxiDriverController(TaxiDriverService taxiDriverService) {
 		this.taxiDriverService = taxiDriverService;
 	}
+
+
+	// 회원가입
+	@PostMapping
+	public ResponseEntity<TaxiDriverResponse> register(@RequestBody CreateTaxiDriverRequest taxiDriverRequest) {
+
+		taxiDriverService.register(taxiDriverRequest);
+
+		return null;
+	}
+
+
+
 }

@@ -24,11 +24,10 @@ public class SecurityConfig {
 			.csrf(AbstractHttpConfigurer::disable)
 			.formLogin(AbstractHttpConfigurer::disable)
 			.httpBasic(AbstractHttpConfigurer::disable)
-			.authorizeHttpRequests(authz -> authz
+			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/login").permitAll()
 				.anyRequest().authenticated()
 			);
-
 		return http.build();
 	}
 
