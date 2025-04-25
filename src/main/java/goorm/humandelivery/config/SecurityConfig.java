@@ -24,12 +24,16 @@ public class SecurityConfig {
 			.csrf(AbstractHttpConfigurer::disable)
 			.formLogin(AbstractHttpConfigurer::disable)
 			.httpBasic(AbstractHttpConfigurer::disable)
-			.authorizeHttpRequests(authz -> authz
-				.requestMatchers("/login").permitAll()
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers("/api/v1/taxi-driver",
+					"/api/v1/taxi-driver/auth-tokens",
+					"/api/v1/taxi-driver/token-info",
+					"/api/v1/customer",
+					"/api/v1/customer/auth-tokens").permitAll()
 				.anyRequest().authenticated()
 			);
-
 		return http.build();
 	}
 
 }
+
