@@ -5,6 +5,13 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
+jwt:
+  secret:
+    access: "sadpofjaosdjfoapsjdfjaksopdjfpjaskopdjfopasjdpofjapsodfjapsodjfpaoksdjf"
+    refresh: "3600000"
+
+
+
   jpa:
     hibernate:
       ddl-auto: create
