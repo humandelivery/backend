@@ -57,7 +57,7 @@ public class CustomerService {
 			.orElseThrow(CustomerNotFoundException::new);
 
 		if (!bCryptPasswordEncoder.matches(loginCustomerRequest.getPassword(), customer.getPassword())) {
-			throw new IncorrectPasswordException("");
+			throw new IncorrectPasswordException();
 		}
 
 		return new LoginCustomerResponse(jwtUtil.generateToken(customer.getLoginId()));

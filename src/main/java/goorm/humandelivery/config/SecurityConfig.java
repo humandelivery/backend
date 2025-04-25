@@ -33,8 +33,8 @@ public class SecurityConfig {
 					"/api/v1/taxi-driver/token-info",
 					"/api/v1/customer",
 					"/api/v1/customer/auth-tokens",
-					"/ws/**",
-					"/app/test").permitAll()
+					"/ws/**"
+					).permitAll()
 				.anyRequest().authenticated()
 			);
 		return http.build();
