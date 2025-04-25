@@ -3,13 +3,7 @@ spring:
     name: humandelivery
 
   config:
-    import: optional:file:.env[.properties]
-
-jwt:
-  secret:
-    access: "sadpofjaosdjfoapsjdfjaksopdjfpjaskopdjfopasjdpofjapsodfjapsodjfpaoksdjf"
-    refresh: "3600000"
-
+    import: optional:file:.env[.properties
 
 
   jpa:
@@ -40,12 +34,10 @@ jwt:
 #  datasource:
 #    driver-class-name: ${DB_DRIVER:org.h2.Driver}
 
-
 jwt:
   secret:
-    access: ${JWT_SECRET_ACCESS}
-    # springboot 가 지원하는 Duration 타입
-    accessTokenValidTime:  ${JWT_SECRET_ACCESS_DURATION}
+    access: "sadpofjaosdjfoapsjdfjaksopdjfpjaskopdjfopasjdpofjapsodfjapsodjfpaoksdjf"
+    accessTokenValidTime: "3600000"
 
 
 logging:
@@ -56,3 +48,8 @@ logging:
         orm:
           jdbc:
             bind: trace
+      org:
+        springframework:
+          web:
+            socket: DEBUG
+          messaging: DEBUG

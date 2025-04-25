@@ -59,7 +59,7 @@ public class TaxiDriverService {
 
 
 		if (!isSamePassword) {
-			throw new IncorrectPasswordException("패스워드가 올바르지 않습니다.");
+			throw new IncorrectPasswordException();
 		}
 	}
 
