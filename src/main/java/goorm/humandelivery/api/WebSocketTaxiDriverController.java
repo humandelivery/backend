@@ -12,6 +12,7 @@ import goorm.humandelivery.domain.model.entity.RequestStatus;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.request.CallAcceptRequest;
 import goorm.humandelivery.domain.model.request.CallRejectRequest;
+import goorm.humandelivery.domain.model.request.CallRejectResponse;
 import goorm.humandelivery.domain.model.request.UpdateLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusResponse;
@@ -130,14 +131,14 @@ public class WebSocketTaxiDriverController {
 	 */
 	@MessageMapping("/taxi-driver/reject-call")
 	@SendToUser("/queue/reject-call-result")
-	public CallAcceptResponse rejectTaxiCall(CallRejectRequest request, Principal principal) {
+	public CallRejectResponse rejectTaxiCall(CallRejectRequest request, Principal principal) {
 
 		/**
 		 * TODO : 콜 요청 거절..
 		 */
 
-		CallAcceptResponse response = new CallAcceptResponse();
-		response.setRequestStatus(RequestStatus.OK);
+		CallRejectResponse response = new CallRejectResponse();
+		response.setCallId(request.getCallId());
 		return response;
 	}
 
