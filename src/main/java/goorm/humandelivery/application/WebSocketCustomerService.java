@@ -10,8 +10,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WebSocketCustomerService {
 
-	// private final BlockingMessageQueueService messageQueueService;
-	private final KafkaMessageQueueService messageQueueService;
+	private final BlockingMessageQueueService messageQueueService;
+	// private final KafkaMessageQueueService messageQueueService;
 
 	public void processMessage(CallMessageRequest request, String senderId) {
 		messageQueueService.enqueue(request.toQueueMessage(senderId));
