@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
-public class CustomerSocketMessageRequest {
+public class CallMessageRequest {
 
 	@NotBlank(message = "출발 위치를 입력해 주세요.")
 	private final String expectedOrigin;

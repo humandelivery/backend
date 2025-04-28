@@ -6,31 +6,30 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.WebSocketSession;
 
-import goorm.humandelivery.domain.model.entity.Taxi;
 import goorm.humandelivery.domain.model.entity.TaxiDriver;
 import goorm.humandelivery.domain.model.internal.CallMessage;
 import goorm.humandelivery.domain.model.internal.QueueMessage;
 import goorm.humandelivery.domain.model.response.CallTargetTaxiDriverDto;
-import goorm.humandelivery.domain.model.response.TaxiDriverResponse;
 import goorm.humandelivery.domain.repository.TaxiDriverRepository;
 
 // 책임: 메세지 큐와 관련된 로직만을 처리하는 전담 서비스
 @Service
-public class CallMessageQueueService implements MessageQueueService {
+public class BlockingMessageQueueService implements MessageQueueService {
 
-	private final BlockingQueue<QueueMessage> messageQueue = new LinkedBlockingQueue<>();
-	@Autowired
-	private ApplicationEventPublisher eventPublisher;
+	private final BlockingQueue<QueueMessage> blockingMessageQueue = new LinkedBlockingQueue<>();
 	@Autowired
 	private TaxiDriverRepository taxiDriverRepository;
+	@Autowired
+	private SimpMessagingTemplate messagingTemplate;
+
 
 	@Override
 	public void enqueue(QueueMessage message) {
-		messageQueue.offer(message);
+		blockingMessageQueue.offer(message);
 	}
 
 	// public QueueMessage take() throws InterrupedException{
@@ -38,10 +37,10 @@ public class CallMessageQueueService implements MessageQueueService {
 	// }
 
 	@Override
+	@Scheduled(fixedDelay = 1000)
 	public void processMessage(){
-		while(!messageQueue.isEmpty()){
-			QueueMessage message = messageQueue.poll();
-
+		while(!blockingMessageQueue.isEmpty()){
+			QueueMessage message = blockingMessageQueue.poll();
 			processMessage(message);
 		}
 	}
@@ -82,6 +81,12 @@ public class CallMessageQueueService implements MessageQueueService {
 	}
 
 	public void sendCallMessageToTaxiDriver(CallTargetTaxiDriverDto taxiDriver, CallMessage callMessage) {
+		String destination = "/queue/call";
+		String driverLoginId = taxiDriver.getDriverLoginId();
+		messagingTemplate.convertAndSendToUser(
+			driverLoginId,						// 사용자 이름(Principal name)
+			destination, 						// 목적지
+			callMessage);						// 전송할 메세지
 
 	}
 

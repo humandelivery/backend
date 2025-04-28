@@ -2,7 +2,7 @@ package goorm.humandelivery.application;
 
 import org.springframework.stereotype.Service;
 
-import goorm.humandelivery.domain.model.request.CustomerSocketMessageRequest;
+import goorm.humandelivery.domain.model.request.CallMessageRequest;
 import lombok.RequiredArgsConstructor;
 
 // 책임: 웹소켓 연결 및 클라이언트와의 상호작용을 담당하는 서비스
@@ -10,10 +10,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WebSocketCustomerService {
 
-	private final CallMessageQueueService callMessageQueueService;
+	// private final BlockingMessageQueueService messageQueueService;
+	private final KafkaMessageQueueService messageQueueService;
 
-	public void processMessage(CustomerSocketMessageRequest request, String senderId) {
-		callMessageQueueService.enqueue(request.toQueueMessage(senderId));
+	public void processMessage(CallMessageRequest request, String senderId) {
+		messageQueueService.enqueue(request.toQueueMessage(senderId));
 	}
 
 }
