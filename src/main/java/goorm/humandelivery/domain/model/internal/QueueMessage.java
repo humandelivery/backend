@@ -1,15 +1,6 @@
 package goorm.humandelivery.domain.model.internal;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+public interface QueueMessage {
 
-@RequiredArgsConstructor
-@Getter
-public class QueueMessage {
-
-	private final String senderId;
-	private final String expectedOrigin;
-	private final String expectedDestination;
-	private final String taxiType;
 
 }

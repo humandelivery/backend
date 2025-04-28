@@ -10,10 +10,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WebSocketCustomerService {
 
-	private final MessageQueueService messageQueueService;
+	private final CallMessageQueueService callMessageQueueService;
 
 	public void processMessage(CustomerSocketMessageRequest request, String senderId) {
-		messageQueueService.enqueue(request.toQueueMessage(senderId));
+		callMessageQueueService.enqueue(request.toQueueMessage(senderId));
 	}
 
 }
