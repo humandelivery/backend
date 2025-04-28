@@ -1,5 +1,7 @@
 package goorm.humandelivery.config;
 
+import java.security.Principal;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -51,8 +53,8 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
 		 * 	/queue : 관례상 일대일 메세지 전송에서 사용.
 		 */
 		config.enableSimpleBroker("/topic", "/queue");
-	}
 
+	}
 
 	@Override
 	public void configureClientInboundChannel(ChannelRegistration registration) {
@@ -66,19 +68,25 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
 				StompHeaderAccessor accessor =
 					MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 				StompCommand command = accessor != null ? accessor.getCommand() : null;
-				log.info("preSend message: {}", message);
-				log.info("StompCommand: {}", command);
-				log.info("WebSocket CONNECT Authorization: {}", message);
 
+				if (accessor == null) {
+					return message;
+				}
+
+				String sessionId = accessor.getSessionId();
+				Principal principal = accessor.getUser();
+				String username = (principal != null) ? principal.getName() : "익명";
+				String destination = accessor.getDestination();
+
+
+				log.info("[WebSocket] cmd={}, sessionId={}, user={}, dest={}", command, sessionId, username, destination);
 
 				if (StompCommand.CONNECT.equals(accessor.getCommand())) {
 					try {
 						String token = accessor.getFirstNativeHeader("Authorization");
-						log.info("받은 토큰: {}", token);
 
 						// 1. 인증 로직 수행 (예: JWT 검증)
 						boolean isValid = jwtUtil.validateToken(token);
-						log.info("🔍 토큰 유효성 결과: {}", isValid);
 
 						if (!isValid) {
 							// 발생한 예외는 STOMP 클라이언트에게 ERROR 프레임으로 반환됨 -> 클라이언트로..
@@ -90,8 +98,6 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
 						Authentication authentication = jwtUtil.getAuthentication(token);
 						log.info("authentication: {}", authentication);
 
-
-
 						// 3. accessor 에 authentication 객체 세팅
 						// @MessageMapping 메서드가 포함된 컨트롤러에서 @Principal 어노테이션으로 정보 추출 가능.
 						accessor.setUser(authentication);
@@ -100,9 +106,7 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
 						throw new IllegalArgumentException("Invalid WebSocket Token", e);
 					}
 
-					}
-
-
+				}
 				return message;
 			}
 		});
