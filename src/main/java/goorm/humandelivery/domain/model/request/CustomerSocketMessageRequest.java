@@ -1,6 +1,6 @@
 package goorm.humandelivery.domain.model.request;
 
-import goorm.humandelivery.domain.model.internal.QueueMessage;
+import goorm.humandelivery.domain.model.internal.CallMessage;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +16,8 @@ public class CustomerSocketMessageRequest {
 	@NotBlank(message = "택시 타입을 선택해 주세요.")
 	private final String taxiType;
 
-	public QueueMessage toQueueMessage(String senderId) {
-		return new QueueMessage(senderId, expectedOrigin, expectedDestination, taxiType);
+	public CallMessage toQueueMessage(String senderId) {
+		return new CallMessage(senderId, expectedOrigin, expectedDestination, taxiType);
 	}
 
 }
