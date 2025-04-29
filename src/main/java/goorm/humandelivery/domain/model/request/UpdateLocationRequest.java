@@ -13,4 +13,7 @@ public class UpdateLocationRequest {
 
 	@NotBlank
 	private Location location;
+
+
+
 }

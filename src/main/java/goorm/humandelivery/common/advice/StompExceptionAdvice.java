@@ -6,6 +6,8 @@ import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import goorm.humandelivery.common.exception.CustomerNotAssignedException;
+import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.domain.model.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,10 +15,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class StompExceptionAdvice {
 
-	@MessageExceptionHandler(IOException.class)
+
+	@MessageExceptionHandler(OffDutyLocationUpdateException.class)
 	@SendToUser("/queue/errors") // /user/queue/errors
-	public ErrorResponse handleException(IOException exception) {
-		log.error("exception: {}", exception.getClass());
-		return new ErrorResponse("IO_ERROR", "입출력 오류가 발생했습니다.");
+	public ErrorResponse handleOffDutyLocationUpdateException(OffDutyLocationUpdateException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("OffDutyLocationUpdateException", ex.getMessage());
 	}
+
+	@MessageExceptionHandler(CustomerNotAssignedException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleCustomerNotAssignedException(CustomerNotAssignedException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("CustomerNotAssignedException", ex.getMessage());
+	}
+
 }
