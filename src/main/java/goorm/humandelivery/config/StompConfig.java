@@ -78,8 +78,7 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
 				String username = (principal != null) ? principal.getName() : "익명";
 				String destination = accessor.getDestination();
 
-
-				log.info("[WebSocket] cmd={}, sessionId={}, user={}, dest={}", command, sessionId, username, destination);
+				log.info("[WebSocket] cmd={}, sessionId={}, user={}, dest={} payload={}", command, sessionId, username, destination, accessor.getMessage());
 
 				if (StompCommand.CONNECT.equals(accessor.getCommand())) {
 					try {

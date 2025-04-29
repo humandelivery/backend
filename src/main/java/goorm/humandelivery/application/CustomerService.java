@@ -1,8 +1,6 @@
 package goorm.humandelivery.application;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,7 +47,6 @@ public class CustomerService {
 
 		return new CreateCustomerResponse(customerRepository.save(customer).getLoginId());
 	}
-
 
 	@Transactional(readOnly = true)
 	public LoginCustomerResponse authenticateAndGenerateToken(LoginCustomerRequest loginCustomerRequest) {

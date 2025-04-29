@@ -2,6 +2,8 @@ package goorm.humandelivery.infrastructure.redis;
 
 public class RedisKeyParser {
 
+	private static final String TAXI_DRIVER_LOCATION_KEY = "taxidriver:location";
+
 	private RedisKeyParser() {
 	}
 
@@ -9,7 +11,7 @@ public class RedisKeyParser {
 		return String.format("taxidriver:%s:status", loginId);
 	}
 
-	public static String taxiDriverLocation(String loginId) {
-		return String.format("taxidriver:%s:location", loginId);
+	public static String taxiDriverLocation() {
+		return TAXI_DRIVER_LOCATION_KEY;
 	}
 }
