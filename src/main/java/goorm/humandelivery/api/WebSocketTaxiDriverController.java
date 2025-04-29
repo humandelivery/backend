@@ -6,7 +6,7 @@ import java.time.Duration;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Controller;
 
 import goorm.humandelivery.application.TaxiDriverService;
 import goorm.humandelivery.common.exception.CustomerNotAssignedException;
@@ -28,9 +28,8 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RestController
+@Controller
 @MessageMapping("/taxi-driver")  // "/app/taxi-driver"
-
 public class WebSocketTaxiDriverController {
 
 	private final RedisService redisService;
@@ -74,8 +73,13 @@ public class WebSocketTaxiDriverController {
 	 * @param principal
 	 * @return UpdateLocationResponse
 	 */
-	@MessageMapping("/taxi-driver/update-location")
-	public LocationResponse updateLocation(@Valid UpdateLocationRequest request, Principal principal) {
+	@MessageMapping("/update-location")
+	public void updateLocation(@Valid UpdateLocationRequest request, Principal principal) {
+		String taxiDriverLoginId = principal.getName();
+		String customerLoginId = request.getCustomerLoginId();
+		Location location = request.getLocation();
+		log.info("[updateLocation 호출] taxiDriverId : {}, 위도 : {}, 경도 : {}", principal.getName(), location.getLatitude(),
+			location.getLongitude());
 
 		/**
 		 *
@@ -85,10 +89,6 @@ public class WebSocketTaxiDriverController {
 		 * 	TaxiDriverStatus.RESERVED, TaxiDriverStatusON_DRIVING. -> 손님으로 전달
 		 * 	TaxiDriverStatus.OFF_DUTY 인 경우 -> 위치 정보 안옵니다.
 		 */
-		// 택시 상태 가져오기
-		String taxiDriverLoginId = principal.getName();
-		String customerLoginId = request.getCustomerLoginId();
-		Location location = request.getLocation();
 
 		TaxiDriverStatus status = taxiDriverService.getCurrentTaxiDriverStatus(taxiDriverLoginId);
 		LocationResponse response = new LocationResponse(location);
@@ -96,14 +96,9 @@ public class WebSocketTaxiDriverController {
 		// 상태에 따른 저장소 분기
 		// 메세지를 전달하는 건 컨트롤러 역할이라고 보인다.
 		switch (status) {
-			case OFF_DUTY -> {
-				throw new OffDutyLocationUpdateException();
-			}
-			case AVAILABLE -> {
-				String key = RedisKeyParser.taxiDriverLocation(taxiDriverLoginId);
-				redisService.setLocation(key, location, taxiDriverLoginId);
-			}
-
+			case OFF_DUTY -> throw new OffDutyLocationUpdateException();
+			case AVAILABLE ->
+				redisService.setLocation(RedisKeyParser.taxiDriverLocation(), location, taxiDriverLoginId);
 			case RESERVED, ON_DRIVING -> {
 				if (customerLoginId == null) {
 					throw new CustomerNotAssignedException();
@@ -115,7 +110,6 @@ public class WebSocketTaxiDriverController {
 					response);
 			}
 		}
-		return response;
 	}
 
 	/**
