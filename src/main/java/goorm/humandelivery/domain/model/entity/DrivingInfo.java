@@ -2,7 +2,9 @@ package goorm.humandelivery.domain.model.entity;
 
 import java.time.LocalDateTime;
 
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -28,11 +30,18 @@ public class DrivingInfo extends BaseEntity {
 	@JoinColumn(name = "matching_id")
 	private Matching matching;
 
-	private String origin;
+	@Embedded
+	@AttributeOverride(name = "latitude", column = @Column(name = "origin_latitude"))
+	@AttributeOverride(name = "longitude", column = @Column(name = "origin_longitude"))
+
+	private Location origin;
 
 	private LocalDateTime pickupTime;
 
-	private String destination;
+	@Embedded
+	@AttributeOverride(name = "latitude", column = @Column(name = "dest_latitude"))
+	@AttributeOverride(name = "longitude", column = @Column(name = "dest_longitude"))
+	private Location destination;
 
 	private LocalDateTime arrivingTime;
 

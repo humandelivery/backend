@@ -1,6 +1,9 @@
 package goorm.humandelivery.common.util.listener;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.springframework.context.event.EventListener;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
@@ -17,7 +20,6 @@ public class StompEventListener {
 	@EventListener
 	public void listener(SessionConnectEvent sessionConnectEvent) {
 		log.info("sessionConnectEvent. {}", sessionConnectEvent);
-
 	}
 
 	@EventListener
