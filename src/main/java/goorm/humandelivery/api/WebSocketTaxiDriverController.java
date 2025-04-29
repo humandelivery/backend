@@ -8,16 +8,16 @@ import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.web.bind.annotation.RestController;
 
 import goorm.humandelivery.domain.model.entity.Location;
-import goorm.humandelivery.domain.model.entity.RequestStatus;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.request.CallAcceptRequest;
 import goorm.humandelivery.domain.model.request.CallRejectRequest;
 import goorm.humandelivery.domain.model.request.CallRejectResponse;
+import goorm.humandelivery.domain.model.request.LocationResponse;
+import goorm.humandelivery.domain.model.request.UpdateDrivingLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusResponse;
 import goorm.humandelivery.domain.model.response.CallAcceptResponse;
-import goorm.humandelivery.domain.model.response.UpdateLocationResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,21 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 @MessageMapping("/taxi-driver")  // "/app/taxi-driver"
 
 public class WebSocketTaxiDriverController {
-
-	@MessageMapping("/hello")  // /app/taxi-driver/hello
-	@SendTo("/topic/hello") // 서버 -> 클라이언트로 전달하는 메세지 통로
-	public String hello(String message) {
-		log.info("서버 hello() 진입: {} ", message);
-		return message.toUpperCase();
-	}
-
-	@MessageMapping("/location")
-	@SendTo("/topic/hello") // 구독자 모두에 ㄷ뿌리는거.
-	public String location(String message, Principal principal) {
-		// 이걸 레디스에 저장한다 ~
-		return message;
-	}
-
 	/**
 	 * 택시운전기사 상태 변경
 	 * @param request
@@ -49,7 +34,8 @@ public class WebSocketTaxiDriverController {
 	 */
 	@MessageMapping("/update-status")
 	@SendToUser("/queue/taxi-driver-status")
-	public UpdateTaxiDriverStatusResponse updateStatus(@Valid UpdateTaxiDriverStatusRequest request, Principal principal) {
+	public UpdateTaxiDriverStatusResponse updateStatus(@Valid UpdateTaxiDriverStatusRequest request,
+		Principal principal) {
 
 		log.info("[updateStatus 호출] taxiDriverId : {}, 상태 : {} 으로 변경요청", principal.getName(), request.getStatus());
 		UpdateTaxiDriverStatusResponse response = new UpdateTaxiDriverStatusResponse();
@@ -57,22 +43,20 @@ public class WebSocketTaxiDriverController {
 		/**
 		 * TODO : DB에 저장 로직 구현 필요
 		 */
-		response.setRequestStatus(RequestStatus.OK);
 		response.setTaxiDriverStatus(TaxiDriverStatus.valueOf(request.getStatus()));
-		// /app/taxi-driver/update-location
 
 		return response;
 	}
 
 	/**
-	 * 택시운전기사 위치정보 업데이트
+	 * 택시운전기사 위치정보 업데이트 : 운행중 상태인 경우
 	 * @param request
 	 * @param principal
 	 * @return UpdateLocationResponse
 	 */
 	@MessageMapping("/taxi-driver/update-location")
 	@SendToUser("/queue/taxi-driver-location")
-	public UpdateLocationResponse updateLocation(@Valid UpdateLocationRequest request, Principal principal) {
+	public LocationResponse updateLocation(@Valid UpdateLocationRequest request, Principal principal) {
 		Location location = request.getLocation();
 		double latitude = location.getLatitude();
 		double longitude = location.getLongitude();
@@ -86,11 +70,9 @@ public class WebSocketTaxiDriverController {
 		 * TODO : 저장 후 응답
 		 */
 
-		UpdateLocationResponse response = new UpdateLocationResponse();
+		LocationResponse response = new LocationResponse();
 
 		response.setLocation(location);
-		response.setRequestStatus(RequestStatus.OK);
-
 		return response;
 	}
 
@@ -108,7 +90,6 @@ public class WebSocketTaxiDriverController {
 		// redis에 쓴거 성공하면 -> 배차 완료임..
 		// 배차는 내가 만듬.
 
-
 		/**
 		 * TODO : 택시 요청 수락 -> Redis 저장 -> 성공 실패 여부 응답으로 줘야함. -> 성공 시? 배차까지 완료시켜야함.
 		 *
@@ -119,7 +100,6 @@ public class WebSocketTaxiDriverController {
 		 */
 
 		CallAcceptResponse response = new CallAcceptResponse();
-		response.setRequestStatus(RequestStatus.OK);
 		return response;
 	}
 
@@ -142,17 +122,21 @@ public class WebSocketTaxiDriverController {
 		return response;
 	}
 
-
-
 	@MessageMapping("/taxi-driver/update-driving-location")
-	public void updateDrivingLocation(UpdateLocationRequest request, Principal principal) {
+	@SendToUser("/queue/driving-location")
+
+	public LocationResponse updateDrivingLocation(UpdateDrivingLocationRequest request, Principal principal) {
 
 		/**
 		 * TODO : requeest에 현재 위치 담아서 주기적으로 보내주면, 손님에게 sendTo할거임. 손님 아이디는 dto로부터 가져옴?
 		 * messagingTemplate.convertAndSendToUser(request.getCustomerLoginId, "/queue/passenger/location-update", locationData)
 		 */
+		Location location = request.getLocation();
+
+		LocationResponse locationResponse = new LocationResponse();
+		locationResponse.setLocation(location);
+
+		return locationResponse;
 	}
-
-
 
 }
