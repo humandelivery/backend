@@ -7,10 +7,13 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UpdateLocationRequest {
+public class UpdateDrivingLocationRequest {
 
+	@NotBlank
 	private String customerLoginId;
 
 	@NotBlank
 	private Location location;
 }
+
+

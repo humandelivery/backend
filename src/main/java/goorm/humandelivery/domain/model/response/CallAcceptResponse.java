@@ -1,6 +1,5 @@
 package goorm.humandelivery.domain.model.response;
 
-import goorm.humandelivery.domain.model.entity.RequestStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -8,9 +7,6 @@ import lombok.Setter;
 @Getter
 public class CallAcceptResponse {
 
-
-	RequestStatus requestStatus;
 	MatchingResponse matchingResponse;
-
 
 }

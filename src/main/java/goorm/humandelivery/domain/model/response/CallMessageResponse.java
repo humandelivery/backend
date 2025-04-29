@@ -1,9 +1,9 @@
 package goorm.humandelivery.domain.model.response;
 
-public class CallMessageResponse {
-	private String message;
+import org.springframework.beans.factory.parsing.Location;
 
-	public CallMessageResponse(String message) {
-		this.message = message;
-	}
+public class CallMessageResponse {
+	private Long callId;
+	private Location expectedOrigin;
+	private Location expectedDestination;
 }
