@@ -8,8 +8,7 @@ import org.springframework.stereotype.Controller;
 
 import goorm.humandelivery.application.WebSocketCustomerService;
 import goorm.humandelivery.domain.model.request.CallMessageRequest;
-import goorm.humandelivery.domain.model.request.CallRequestMessageResponse;
-import goorm.humandelivery.domain.model.response.CallMessageResponse;
+import goorm.humandelivery.domain.model.response.CallRequestMessageResponse;
 import lombok.RequiredArgsConstructor;
 
 
@@ -22,11 +21,9 @@ public class WebSocketCustomerController {
 
 	@MessageMapping("/call/request")
 	@SendToUser("/queue/call/response")
-	public CallMessageResponse handleMessage(CallMessageRequest request, Principal principal) {
+	public CallRequestMessageResponse handleMessage(CallMessageRequest request, Principal principal) {
 		webSocketCustomerService.processMessage(request, principal.getName());
 
-		return null;
-		//return new CallRequestMessageResponse("콜이 성공적으로 요청되었습니다.");
+		return new CallRequestMessageResponse("콜이 성공적으로 요청되었습니다.");
 	}
-
 }

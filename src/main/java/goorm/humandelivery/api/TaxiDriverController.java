@@ -22,6 +22,7 @@ import goorm.humandelivery.domain.model.response.JwtResponse;
 import goorm.humandelivery.domain.model.response.TaxiDriverResponse;
 import goorm.humandelivery.domain.model.response.TokenInfoResponse;
 import jakarta.validation.Valid;
+import lombok.Getter;
 
 @RestController
 @RequestMapping("/api/v1/taxi-driver")

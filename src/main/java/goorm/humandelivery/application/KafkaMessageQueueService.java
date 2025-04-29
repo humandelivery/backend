@@ -7,7 +7,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import goorm.humandelivery.domain.model.internal.QueueMessage;
 import lombok.RequiredArgsConstructor;
 
-// @Service
+@Service
 @RequiredArgsConstructor
 public class KafkaMessageQueueService implements MessageQueueService{
 
@@ -20,7 +20,7 @@ public class KafkaMessageQueueService implements MessageQueueService{
 	};
 
 	@Override
-	public void processMessage(){
+	public void processMessage(){ // 카프카 쓸때는 안쓰는 메서드
 	};
 
 	@KafkaListener(topics = "taxi-call-queue", groupId = "call-group")
