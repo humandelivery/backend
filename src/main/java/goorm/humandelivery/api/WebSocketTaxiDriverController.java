@@ -78,7 +78,9 @@ public class WebSocketTaxiDriverController {
 		String taxiDriverLoginId = principal.getName();
 		String customerLoginId = request.getCustomerLoginId();
 		Location location = request.getLocation();
-		log.info("[updateLocation 호출] taxiDriverId : {}, 위도 : {}, 경도 : {}", principal.getName(), location.getLatitude(),
+		log.info("[updateLocation 호출] taxiDriverId : {}, 위도 : {}, 경도 : {}",
+			principal.getName(),
+			location.getLatitude(),
 			location.getLongitude());
 
 		/**

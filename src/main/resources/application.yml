@@ -45,20 +45,20 @@ jwt:
     accessTokenValidTime: "3600000"
 
 
-logging:
-  level:
-    org:
-      hibernate:
-        SQL: debug
-        orm:
-          jdbc:
-            bind: trace
+  logging:
+    level:
       org:
-        springframework:
-          web:
-            socket: DEBUG
-          messaging: DEBUG
-          cache : DEBUG
+        hibernate:
+          SQL: debug
+          orm:
+            jdbc:
+              bind: trace
+        org:
+          springframework:
+            web:
+              socket: DEBUG
+            messaging: DEBUG
+            cache : DEBUG
 
 
 
