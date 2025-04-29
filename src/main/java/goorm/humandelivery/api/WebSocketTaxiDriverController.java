@@ -1,12 +1,14 @@
 package goorm.humandelivery.api;
 
 import java.security.Principal;
+import java.time.Duration;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.web.bind.annotation.RestController;
 
+import goorm.humandelivery.application.TaxiDriverService;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.request.CallAcceptRequest;
@@ -18,6 +20,8 @@ import goorm.humandelivery.domain.model.request.UpdateLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusResponse;
 import goorm.humandelivery.domain.model.response.CallAcceptResponse;
+import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
+import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,6 +30,16 @@ import lombok.extern.slf4j.Slf4j;
 @MessageMapping("/taxi-driver")  // "/app/taxi-driver"
 
 public class WebSocketTaxiDriverController {
+
+	private final RedisService redisService;
+	private final TaxiDriverService taxiDriverService;
+
+	@Autowired
+	public WebSocketTaxiDriverController(RedisService redisService, TaxiDriverService taxiDriverService) {
+		this.redisService = redisService;
+		this.taxiDriverService = taxiDriverService;
+	}
+
 	/**
 	 * 택시운전기사 상태 변경
 	 * @param request
@@ -38,14 +52,15 @@ public class WebSocketTaxiDriverController {
 		Principal principal) {
 
 		log.info("[updateStatus 호출] taxiDriverId : {}, 상태 : {} 으로 변경요청", principal.getName(), request.getStatus());
-		UpdateTaxiDriverStatusResponse response = new UpdateTaxiDriverStatusResponse();
 
-		/**
-		 * TODO : DB에 저장 로직 구현 필요
-		 */
-		response.setTaxiDriverStatus(TaxiDriverStatus.valueOf(request.getStatus()));
+		// 1. DB에 상태 저장
+		TaxiDriverStatus changedStatus = taxiDriverService.changeStatus(principal.getName(), request.getStatus());
 
-		return response;
+		// 2. Redis 에 상태 저장. TTL : 1시간
+		String key = RedisKeyParser.taxiDriverStatus(principal.getName());
+		redisService.setValueWithTTL(key, changedStatus.name(), Duration.ofHours(1));
+
+		return new UpdateTaxiDriverStatusResponse(changedStatus);
 	}
 
 	/**

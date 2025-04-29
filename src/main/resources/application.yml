@@ -34,6 +34,11 @@ spring:
 #  datasource:
 #    driver-class-name: ${DB_DRIVER:org.h2.Driver}
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
 jwt:
   secret:
     access: "sadpofjaosdjfoapsjdfjaksopdjfpjaskopdjfopasjdpofjapsodfjapsodjfpaoksdjf"
@@ -53,3 +58,7 @@ logging:
           web:
             socket: DEBUG
           messaging: DEBUG
+          cache : trace
+
+
+

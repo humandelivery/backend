@@ -14,4 +14,7 @@ public class UpdateTaxiDriverStatusResponse {
 	// 요청 결과 이후 택시 상태
 	TaxiDriverStatus taxiDriverStatus;
 
+	public UpdateTaxiDriverStatusResponse(TaxiDriverStatus taxiDriverStatus) {
+		this.taxiDriverStatus = taxiDriverStatus;
+	}
 }
