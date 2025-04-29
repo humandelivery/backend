@@ -1,12 +1,16 @@
 package goorm.humandelivery.api;
 
 import java.security.Principal;
+import java.time.Duration;
 
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Controller;
 
+import goorm.humandelivery.application.TaxiDriverService;
+import goorm.humandelivery.common.exception.CustomerNotAssignedException;
+import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.request.CallAcceptRequest;
@@ -18,14 +22,27 @@ import goorm.humandelivery.domain.model.request.UpdateLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusResponse;
 import goorm.humandelivery.domain.model.response.CallAcceptResponse;
+import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
+import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RestController
+@Controller
 @MessageMapping("/taxi-driver")  // "/app/taxi-driver"
-
 public class WebSocketTaxiDriverController {
+
+	private final RedisService redisService;
+	private final TaxiDriverService taxiDriverService;
+	private final SimpMessagingTemplate messagingTemplate;
+
+	public WebSocketTaxiDriverController(RedisService redisService, TaxiDriverService taxiDriverService,
+		SimpMessagingTemplate messagingTemplate) {
+		this.redisService = redisService;
+		this.taxiDriverService = taxiDriverService;
+		this.messagingTemplate = messagingTemplate;
+	}
+
 	/**
 	 * 택시운전기사 상태 변경
 	 * @param request
@@ -38,14 +55,16 @@ public class WebSocketTaxiDriverController {
 		Principal principal) {
 
 		log.info("[updateStatus 호출] taxiDriverId : {}, 상태 : {} 으로 변경요청", principal.getName(), request.getStatus());
-		UpdateTaxiDriverStatusResponse response = new UpdateTaxiDriverStatusResponse();
 
-		/**
-		 * TODO : DB에 저장 로직 구현 필요
-		 */
-		response.setTaxiDriverStatus(TaxiDriverStatus.valueOf(request.getStatus()));
+		// 1. DB에 상태 저장
+		TaxiDriverStatus changedStatus = taxiDriverService.changeStatus(principal.getName(), request.getStatus());
 
-		return response;
+		// 2. Redis 에 상태 저장. TTL : 1시간
+		String key = RedisKeyParser.taxiDriverStatus(principal.getName());
+
+		redisService.setValueWithTTL(key, changedStatus.name(), Duration.ofHours(1));
+
+		return new UpdateTaxiDriverStatusResponse(changedStatus);
 	}
 
 	/**
@@ -54,26 +73,45 @@ public class WebSocketTaxiDriverController {
 	 * @param principal
 	 * @return UpdateLocationResponse
 	 */
-	@MessageMapping("/taxi-driver/update-location")
-	@SendToUser("/queue/taxi-driver-location")
-	public LocationResponse updateLocation(@Valid UpdateLocationRequest request, Principal principal) {
+	@MessageMapping("/update-location")
+	public void updateLocation(@Valid UpdateLocationRequest request, Principal principal) {
+		String taxiDriverLoginId = principal.getName();
+		String customerLoginId = request.getCustomerLoginId();
 		Location location = request.getLocation();
-		double latitude = location.getLatitude();
-		double longitude = location.getLongitude();
-		log.info("[updateLocation 호출] taxiDriverId : {}", principal.getName());
+		log.info("[updateLocation 호출] taxiDriverId : {}, 위도 : {}, 경도 : {}",
+			principal.getName(),
+			location.getLatitude(),
+			location.getLongitude());
 
 		/**
+		 *
 		 * TODO : Redis에 택시아이디, 택시타입, 위치 저장 필요. 기사 아이디와 위치정보 저장.
+		 * 	1. 상태에 따라 위치 저장소가 다릅니다.
+		 * 	TaxiDriverStatus.AVAILABLE 인 경우 -> Redis 에 저장.
+		 * 	TaxiDriverStatus.RESERVED, TaxiDriverStatusON_DRIVING. -> 손님으로 전달
+		 * 	TaxiDriverStatus.OFF_DUTY 인 경우 -> 위치 정보 안옵니다.
 		 */
 
-		/**
-		 * TODO : 저장 후 응답
-		 */
+		TaxiDriverStatus status = taxiDriverService.getCurrentTaxiDriverStatus(taxiDriverLoginId);
+		LocationResponse response = new LocationResponse(location);
 
-		LocationResponse response = new LocationResponse();
+		// 상태에 따른 저장소 분기
+		// 메세지를 전달하는 건 컨트롤러 역할이라고 보인다.
+		switch (status) {
+			case OFF_DUTY -> throw new OffDutyLocationUpdateException();
+			case AVAILABLE ->
+				redisService.setLocation(RedisKeyParser.taxiDriverLocation(), location, taxiDriverLoginId);
+			case RESERVED, ON_DRIVING -> {
+				if (customerLoginId == null) {
+					throw new CustomerNotAssignedException();
+				}
 
-		response.setLocation(location);
-		return response;
+				messagingTemplate.convertAndSendToUser(
+					customerLoginId,
+					"/queue/update-taxidriver-location",
+					response);
+			}
+		}
 	}
 
 	/**
