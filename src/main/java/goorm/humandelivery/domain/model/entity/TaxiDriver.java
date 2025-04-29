@@ -63,4 +63,9 @@ public class TaxiDriver extends BaseEntity {
 	public boolean isSamePassword(String rawPassword, PasswordEncoder passwordEncoder) {
 		return passwordEncoder.matches(rawPassword, password);
 	}
+
+	public TaxiDriverStatus changeStatus(TaxiDriverStatus status) {
+		this.status = status;
+		return this.status;
+	}
 }
