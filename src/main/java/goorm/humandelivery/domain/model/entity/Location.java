@@ -9,8 +9,8 @@ import lombok.Setter;
 public class Location {
 
 	@NotBlank
-	private double latitude;   // 위도
+	private Double latitude;   // 위도
 
 	@NotBlank
-	private double longitude;  // 경도
+	private Double longitude;  // 경도
 }
