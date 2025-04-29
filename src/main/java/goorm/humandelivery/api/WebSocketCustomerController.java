@@ -21,10 +21,9 @@ public class WebSocketCustomerController {
 
 	@MessageMapping("/call/request")
 	@SendToUser("/queue/call/response")
-	public CallMessageResponse handleMessage(CallMessageRequest request, Principal principal) {
+	public CallRequestMessageResponse handleMessage(CallMessageRequest request, Principal principal) {
 		webSocketCustomerService.processMessage(request, principal.getName());
 
 		return new CallRequestMessageResponse("콜이 성공적으로 요청되었습니다.");
 	}
-
 }
