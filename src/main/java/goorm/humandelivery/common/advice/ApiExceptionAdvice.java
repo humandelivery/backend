@@ -21,6 +21,12 @@ import goorm.humandelivery.domain.model.response.ErrorResponse;
 @RestControllerAdvice
 public class ApiExceptionAdvice {
 
+	@ExceptionHandler(Exception.class)
+	public ResponseEntity<?> handleOtherExceptions(Exception ex) {
+		ex.printStackTrace();
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", ex.getMessage()));
+	}
+
 	@ExceptionHandler(EntityExistsException.class)
 	public ResponseEntity<?> handleEntityExists(EntityExistsException e) {
 		return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -70,9 +76,12 @@ public class ApiExceptionAdvice {
 	}
 
 	@ExceptionHandler(DuplicateLoginIdException.class)
-	public ResponseEntity<ErrorResponse> handleDuplicateLoginIdException(DuplicateLoginIdException ex) {
+	public ResponseEntity<?> handleDuplicateLoginIdException(DuplicateLoginIdException ex) {
 		ErrorResponse response = new ErrorResponse("DUPLICATE_ID", ex.getMessage());
-		return ResponseEntity.badRequest().body(response);
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(Map.of(
+				"message", response
+			));
 	}
 
 	@ExceptionHandler(DuplicatePhoneNumberException.class)

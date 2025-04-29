@@ -36,6 +36,7 @@ public class CustomerController {
 	// 로그인
 	@PostMapping("/auth-tokens")
 	public ResponseEntity<LoginCustomerResponse> login(@RequestBody @Valid LoginCustomerRequest loginCustomerRequest) {
+		log.info("customer login 호출");
 		LoginCustomerResponse response = customerService.authenticateAndGenerateToken(loginCustomerRequest);
 
 		return ResponseEntity.ok(response);
