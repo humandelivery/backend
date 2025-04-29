@@ -1,6 +1,10 @@
 package goorm.humandelivery.domain.model.entity;
 
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -26,9 +30,17 @@ public class Call extends BaseEntity {
 	@JoinColumn(name = "customer_id")
 	private Customer customer;
 
-	private String expectedOrigin;
+	@Embedded
+	@AttributeOverrides({
+		@AttributeOverride(name = "latitude", column = @Column(name = "ex_origin_latitude")),
+		@AttributeOverride(name = "longitude", column = @Column(name = "ex_origin_longitude"))
+	})	private Location expectedOrigin;
 
-	private String expectedDestination;
+	@Embedded
+	@AttributeOverrides({
+		@AttributeOverride(name = "latitude", column = @Column(name = "ex_dest_latitude")),
+		@AttributeOverride(name = "longitude", column = @Column(name = "ex_dest_longitude"))
+	})	private Location expectedDestination;
 
 	@Enumerated(value = EnumType.STRING)
 	private TaxiType taxiType;

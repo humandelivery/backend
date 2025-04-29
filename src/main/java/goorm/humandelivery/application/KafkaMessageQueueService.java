@@ -7,7 +7,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import goorm.humandelivery.domain.model.internal.QueueMessage;
 import lombok.RequiredArgsConstructor;
 
-@Service
 @RequiredArgsConstructor
 public class KafkaMessageQueueService implements MessageQueueService{
 
