@@ -1,3 +1,4 @@
+
 spring:
   application:
     name: humandelivery
@@ -5,38 +6,21 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
-  # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: none
-      dialect: org.hibernate.dialect.H2Dialect
+      ddl-auto: create
     show-sql: true
     properties:
       hibernate:
         show_sql: true
         format_sql: true
 
-  # H2 Database Connection
-  datasource:
-    url: ${DB_URL:jdbc:h2:tcp://localhost:9093/~/humandelivery}
-    username: ${DB_USERNAME:sa}
-    password: ${DB_PASSWORD:}
 
-  sql:
-    init:
-      mode: always
-
-  # H2 Console Activation
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
-  # Kafka Configuration
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: localhost:9092,localhost:9093,localhost:9094  # Kafka 브로커들
     consumer:
       group-id: call-group
+      auto-offset-reset: earliest  # or latest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
@@ -45,30 +29,64 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-  # Redis Configuration
+  datasource:
+    url: "${DB_URL:jdbc:mysql://localhost:3306/humandelivery}"
+    username: root
+    password: root
+
+  sql:
+    init:
+      mode: always
+
+  #  datasource:
+  #    url: jdbc:h2:file:C:/_Workplace/Spring_workplace/HumanDelivery/database/h2db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+  #    username: sa
+  #    password:
+
+
+  #
+  #  h2:
+  #    console:
+  #      enabled: true
+  #      path: /h2-console
+
+  #  datasource:
+  #    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      host: localhost
+      port: 6379
 
-# JWT Configuration
 jwt:
   secret:
-    access: ${JWT_SECRET_ACCESS:sadpofjaosdjfoapsjdfjaksopdjfpjaskopdjfopasjdpofjapsodfjapsodjfpaoksdjf}
-    accessTokenValidTime: ${JWT_ACCESS_TOKEN_VALID_TIME:3600000}
+    access: "sadpofjaosdjfoapsjdfjaksopdjfpjaskopdjfopasjdpofjapsodfjapsodjfpaoksdjf"
+    accessTokenValidTime: "3600000"
 
-# Logging Level Configuration
+
 logging:
   level:
     org:
+      springframework:
+        web:
+          socket: DEBUG
+        messaging: DEBUG
+      apache:
+        kafka: FATAL
+      kafka:
+        clients: FATAL
       hibernate:
         SQL: debug
         orm:
           jdbc:
             bind: trace
-    springframework:
-      web:
-        socket: DEBUG
-      messaging: DEBUG
-      cache: DEBUG
+      org:
+        springframework:
+          web:
+            socket: DEBUG
+          messaging: DEBUG
+          cache : DEBUG
+
+
+
+

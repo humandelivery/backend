@@ -52,7 +52,7 @@ public class RedisService {
 	public List<String> findNearByDrivers(String key, double latitude, double longitude, double radiusInKm) {
 		GeoOperations<String, String> geoOps = redisTemplate.opsForGeo();
 
-		// new Point내부 인자는 경도 / 위도 순서로 넣습니다
+		// new Point 내부 인자는 경도 / 위도 순서로 넣습니다
 		GeoResults<RedisGeoCommands.GeoLocation<String>> results = geoOps.radius(
 			key,
 			new Circle(new Point(longitude, latitude), new Distance(radiusInKm, Metrics.KILOMETERS))
