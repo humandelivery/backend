@@ -21,12 +21,12 @@ public class WebSocketCustomerService {
 	private final KafkaMessageQueueService messageQueueService;
 
 	public void processMessage(CallMessageRequest request, String senderId) {
-		Long callId = saveCall(request, senderId).getId();
+		Long callId = saveCallAndGetCallId(request, senderId);
 		messageQueueService.enqueue(request.toQueueMessage(callId));
 	}
 
-	public CallInfo saveCall(CallMessageRequest request, String senderId){
+	public Long saveCallAndGetCallId(CallMessageRequest request, String senderId){
 		Customer customer = customerService.findCustomerByLoginId(senderId);
-		return callRepository.save(request.toCall(customer));
+		return callRepository.save(request.toCall(customer)).getId();
 	}
 }
