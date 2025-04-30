@@ -91,14 +91,14 @@ public class WebSocketTaxiDriverController {
 			location.getLatitude(),
 			location.getLongitude());
 
-		// redis 로부터 택시기사 상태조회
+		// redis 에서 택시기사 상태조회 -> 없으면 DB 조회 -> redis 저장 -> 반환
 		TaxiDriverStatus status = taxiDriverService.getCurrentTaxiDriverStatus(taxiDriverLoginId);
 
-		// redis 로부터 택시타입조회 -> 택시기사의 택시가 무슨 택시타입인지.. 가져와야함.
+		// redis 에서 택시종류조회 -> 없으면 DB 조회 -> redis 저장 -> 반환
 		TaxiType taxiType = taxiDriverService.getCurrentTaxiType(taxiDriverLoginId);
 
 		// 고객아이디, 택시기사 로케이션
-		messagingService.sendLocationToCustomer(taxiDriverLoginId, status, taxiType, customerLoginId, location);
+		messagingService.sendMessage(taxiDriverLoginId, status, taxiType, customerLoginId, location);
 	}
 
 	/**

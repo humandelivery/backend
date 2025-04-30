@@ -26,7 +26,7 @@ public class MessagingService {
 		this.redisService = redisService;
 	}
 
-	public void sendLocationToCustomer(String taxiDriverLoginId, TaxiDriverStatus status, TaxiType taxiType,
+	public void sendMessage(String taxiDriverLoginId, TaxiDriverStatus status, TaxiType taxiType,
 		String customerLoginId, Location location
 	) {
 
