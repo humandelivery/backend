@@ -91,7 +91,7 @@ public class WebSocketTaxiDriverController {
 		switch (status) {
 			case OFF_DUTY -> throw new OffDutyLocationUpdateException();
 			case AVAILABLE ->
-				redisService.setLocation(RedisKeyParser.taxiDriverLocation(), location, taxiDriverLoginId);
+				redisService.setLocation(RedisKeyParser.TAXI_DRIVER_LOCATION_KEY, location, taxiDriverLoginId);
 			case RESERVED, ON_DRIVING -> {
 				if (customerLoginId == null) {
 					throw new CustomerNotAssignedException();
