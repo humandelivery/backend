@@ -18,8 +18,8 @@ public class CustomerSocketMessageRequest {
 	@NotBlank(message = "택시 타입을 선택해 주세요.")
 	private final TaxiType taxiType;
 
-	public CallMessage toQueueMessage(String senderId) {
-		return new CallMessage(senderId, expectedOrigin, expectedDestination, taxiType);
+	public CallMessage toQueueMessage(Long CallId) {
+		return new CallMessage(CallId, expectedOrigin, expectedDestination, taxiType);
 	}
 
 }

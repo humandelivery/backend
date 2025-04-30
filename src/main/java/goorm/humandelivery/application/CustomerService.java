@@ -1,5 +1,7 @@
 package goorm.humandelivery.application;
 
+import java.util.Optional;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +60,11 @@ public class CustomerService {
 		}
 
 		return new LoginCustomerResponse(jwtUtil.generateToken(customer.getLoginId()));
+	}
+
+	@Transactional(readOnly = true)
+	public Customer findCustomerByLoginId(String loginId) {
+		return customerRepository.findByLoginId(loginId).orElseThrow(CustomerNotFoundException::new);
 	}
 
 }

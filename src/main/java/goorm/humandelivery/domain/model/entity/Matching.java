@@ -23,7 +23,7 @@ public class Matching extends BaseEntity {
 
 	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "call_id")
-	private Call call;
+	private CallInfo callInfo;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "taxi_driver_id")
