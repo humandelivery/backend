@@ -2,16 +2,22 @@ package goorm.humandelivery.domain.model.internal;
 
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiType;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
-@RequiredArgsConstructor
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
+@Setter
 public class CallMessage extends QueueMessage {
 
-	private final String senderId;
-	private final Location expectedOrigin;
-	private final Location expectedDestination;
-	private final TaxiType taxiType;
+	private Long callId;
+	//private String senderId;
+	private Location expectedOrigin;
+	private Location expectedDestination;
+	private TaxiType taxiType;
 
 }
