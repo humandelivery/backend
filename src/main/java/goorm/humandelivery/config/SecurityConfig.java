@@ -32,11 +32,12 @@ public class SecurityConfig {
 					"/api/v1/taxi-driver/token-info",
 					"/api/v1/customer",
 					"/api/v1/customer/auth-tokens",
-					"/h2-console/**",
 					"/ws/**"
 				).permitAll()
 				.anyRequest().authenticated()
 			);
 		return http.build();
 	}
+
 }
+

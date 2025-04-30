@@ -4,12 +4,23 @@ spring:
     name: humandelivery
 
   config:
-    import: optional:file:.env[.properties
+    import: optional:file:.env[.properties]
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: localhost:9092,localhost:9093,localhost:9094  # Kafka 브로커들
     consumer:
       group-id: call-group
+      auto-offset-reset: earliest  # or latest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
@@ -18,34 +29,26 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: true
-    properties:
-      hibernate:
-        show_sql: true
-        format_sql: true
-
-#  datasource:
-#    url: ${DB_URL:}
-#    username: sa
-#    password:
+  datasource:
+    url: "${DB_URL:jdbc:mysql://localhost:3306/humandelivery}"
+    username: root
+    password: root
 
   sql:
     init:
       mode: always
-# 내장 h2 사용 시 (주석처리된 부분은 참고용입니다)
-  datasource:
-    url: jdbc:h2:file:C:/_Workplace/Spring_workplace/HumanDelivery/database/h2db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password:
 
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+#  datasource:
+#    url: jdbc:h2:file:C:/_Workplace/Spring_workplace/HumanDelivery/database/h2db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+#    username: sa
+#    password:
+
+
+#
+#  h2:
+#    console:
+#      enabled: true
+#      path: /h2-console
 
 #  datasource:
 #    driver-class-name: ${DB_DRIVER:org.h2.Driver}
@@ -61,34 +64,28 @@ jwt:
     accessTokenValidTime: "3600000"
 
 
-  logging:
-    level:
+logging:
+  level:
+    org:
+      springframework:
+        web:
+          socket: DEBUG
+        messaging: DEBUG
+      apache:
+        kafka: FATAL
+      kafka:
+        clients: FATAL
+      hibernate:
+        SQL: debug
+        orm:
+          jdbc:
+            bind: trace
       org:
-
         springframework:
           web:
             socket: DEBUG
           messaging: DEBUG
-        apache:
-          kafka: FATAL
-        kafka:
-          clients: FATAL
-
-
-
-
-
-        hibernate:
-          SQL: debug
-          orm:
-            jdbc:
-              bind: trace
-        org:
-          springframework:
-            web:
-              socket: DEBUG
-            messaging: DEBUG
-            cache : DEBUG
+          cache : DEBUG
 
 
 
