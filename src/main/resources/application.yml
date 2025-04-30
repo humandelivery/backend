@@ -4,7 +4,17 @@ spring:
     name: humandelivery
 
   config:
-    import: optional:file:.env[.properties
+    import: optional:file:.env[.properties]
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+
 
   kafka:
     bootstrap-servers: localhost:9092,localhost:9093,localhost:9094  # Kafka 브로커들
@@ -19,19 +29,10 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: true
-    properties:
-      hibernate:
-        show_sql: true
-        format_sql: true
-
   datasource:
-    url: ${DB_URL:jdbc:h2:tcp://localhost/~/humandelivery}
-    username: sa
-    password:
+    url: "${DB_URL:jdbc:mysql://localhost:3306/humandelivery}"
+    username: root
+    password: root
 
   sql:
     init:

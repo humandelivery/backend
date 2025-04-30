@@ -12,7 +12,7 @@ public class KafkaMessageConsumer {
 	private final KafkaMessageQueueService kafkaMessageQueueService;
 
 	@KafkaListener(topics = "taxi-call-queue", groupId = "call-group")
-	public void listen(QueueMessage messgae){
-		kafkaMessageQueueService.processMessage(messgae);
+	public void listen(QueueMessage message){
+		kafkaMessageQueueService.processMessage(message);
 	}
 }
