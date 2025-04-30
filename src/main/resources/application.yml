@@ -61,34 +61,28 @@ jwt:
     accessTokenValidTime: "3600000"
 
 
-  logging:
-    level:
+logging:
+  level:
+    org:
+      springframework:
+        web:
+          socket: DEBUG
+        messaging: DEBUG
+      apache:
+        kafka: FATAL
+      kafka:
+        clients: FATAL
+      hibernate:
+        SQL: debug
+        orm:
+          jdbc:
+            bind: trace
       org:
-
         springframework:
           web:
             socket: DEBUG
           messaging: DEBUG
-        apache:
-          kafka: FATAL
-        kafka:
-          clients: FATAL
-
-
-
-
-
-        hibernate:
-          SQL: debug
-          orm:
-            jdbc:
-              bind: trace
-        org:
-          springframework:
-            web:
-              socket: DEBUG
-            messaging: DEBUG
-            cache : DEBUG
+          cache : DEBUG
 
 
 

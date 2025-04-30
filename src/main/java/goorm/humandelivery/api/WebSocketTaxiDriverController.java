@@ -3,6 +3,7 @@ package goorm.humandelivery.api;
 import java.security.Principal;
 import java.time.Duration;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
@@ -17,11 +18,11 @@ import goorm.humandelivery.domain.model.request.CallAcceptRequest;
 import goorm.humandelivery.domain.model.request.CallRejectRequest;
 import goorm.humandelivery.domain.model.request.CallRejectResponse;
 import goorm.humandelivery.domain.model.request.LocationResponse;
-import goorm.humandelivery.domain.model.request.UpdateDrivingLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusResponse;
 import goorm.humandelivery.domain.model.response.CallAcceptResponse;
+import goorm.humandelivery.infrastructure.messaging.MessagingService;
 import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.validation.Valid;
@@ -35,12 +36,15 @@ public class WebSocketTaxiDriverController {
 	private final RedisService redisService;
 	private final TaxiDriverService taxiDriverService;
 	private final SimpMessagingTemplate messagingTemplate;
+	private final MessagingService messagingService;
 
+	@Autowired
 	public WebSocketTaxiDriverController(RedisService redisService, TaxiDriverService taxiDriverService,
-		SimpMessagingTemplate messagingTemplate) {
+		SimpMessagingTemplate messagingTemplate, MessagingService messagingService) {
 		this.redisService = redisService;
 		this.taxiDriverService = taxiDriverService;
 		this.messagingTemplate = messagingTemplate;
+		this.messagingService = messagingService;
 	}
 
 	/**
@@ -86,8 +90,9 @@ public class WebSocketTaxiDriverController {
 		TaxiDriverStatus status = taxiDriverService.getCurrentTaxiDriverStatus(taxiDriverLoginId);
 		LocationResponse response = new LocationResponse(location);
 
-		// 상태에 따른 저장소 분기
-		// 메세지를 전달하는 건 컨트롤러 역할이라고 보인다.
+		// 고객아이디, 택시기사 로케이션
+		// messagingService.sendLocationToCustomer(taxiDriverLoginId, customerLoginId, location, status);
+
 		switch (status) {
 			case OFF_DUTY -> throw new OffDutyLocationUpdateException();
 			case AVAILABLE ->
