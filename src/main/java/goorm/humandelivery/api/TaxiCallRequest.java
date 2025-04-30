@@ -1,7 +1,5 @@
 package goorm.humandelivery.api;
 
-
-
 import goorm.humandelivery.domain.model.entity.Location;
 import lombok.Getter;
 import lombok.Setter;

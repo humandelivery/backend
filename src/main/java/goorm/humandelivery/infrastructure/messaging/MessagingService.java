@@ -26,7 +26,7 @@ public class MessagingService {
 		this.redisService = redisService;
 	}
 
-	public void sendLocationToCustomer(String taxiDriverLoginId, TaxiDriverStatus status, TaxiType taxiType,
+	public void sendMessage(String taxiDriverLoginId, TaxiDriverStatus status, TaxiType taxiType,
 		String customerLoginId, Location location
 	) {
 
@@ -34,6 +34,7 @@ public class MessagingService {
 
 		switch (status) {
 			case OFF_DUTY -> throw new OffDutyLocationUpdateException();
+
 			case AVAILABLE ->
 				redisService.setLocation(
 					RedisKeyParser.taxiDriverLocationKeyFrom(taxiType),
