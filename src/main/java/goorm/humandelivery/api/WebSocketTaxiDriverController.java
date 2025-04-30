@@ -91,7 +91,10 @@ public class WebSocketTaxiDriverController {
 			location.getLatitude(),
 			location.getLongitude());
 
+		// redis 로부터 택시기사 상태조회
 		TaxiDriverStatus status = taxiDriverService.getCurrentTaxiDriverStatus(taxiDriverLoginId);
+
+		// redis 로부터 택시타입조회 -> 택시기사의 택시가 무슨 택시타입인지.. 가져와야함.
 		TaxiType taxiType = taxiDriverService.getCurrentTaxiType(taxiDriverLoginId);
 
 		// 고객아이디, 택시기사 로케이션

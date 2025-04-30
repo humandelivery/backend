@@ -1,28 +1,19 @@
 package goorm.humandelivery.infrastructure.messaging;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import goorm.humandelivery.domain.model.entity.Location;
-import goorm.humandelivery.domain.model.entity.TaxiDriver;
 import goorm.humandelivery.domain.model.internal.CallMessage;
 import goorm.humandelivery.domain.model.internal.QueueMessage;
-import goorm.humandelivery.domain.model.response.CallTargetTaxiDriverDto;
 import goorm.humandelivery.domain.repository.TaxiDriverRepository;
-import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class KafkaMessageQueueService implements MessageQueueService{
+public class KafkaMessageQueueService implements MessageQueueService {
 
 	private final TaxiDriverRepository taxiDriverRepository;
 	private final SimpMessagingTemplate messagingTemplate;
@@ -30,34 +21,38 @@ public class KafkaMessageQueueService implements MessageQueueService{
 	private final RedisService redisService;
 
 	@Override
-	public void enqueue(QueueMessage message){
+	public void enqueue(QueueMessage message) {
 		kafkaMessageProducer.send(message);
-	};
+	}
+
+	;
 
 	@Override
-	public void processMessage(){ // 카프카 쓸때는 안쓰는 메서드
-	};
+	public void processMessage() { // 카프카 쓸때는 안쓰는 메서드
+	}
+
+	;
 
 	@Override
-	public void processMessage(QueueMessage message){
+	public void processMessage(QueueMessage message) {
 		// 메세지 처리
-		if(!(message instanceof CallMessage)){
+		if (!(message instanceof CallMessage)) {
 			// 메세지가 콜 메세지가 아닌 경우 처리
 			return;
 		}
 
-		CallMessage callMessage = (CallMessage) message;
+		CallMessage callMessage = (CallMessage)message;
 
 		// 1. 출발 위치에서 10분 거리 내의 운행 가능한 택시 목록 찾기
 		List<String> availableTaxiDrivers
 			= redisService.findNearByDrivers(
-				RedisKeyParser.TAXI_DRIVER_LOCATION_KEY,
+			callMessage.getTaxiType(),
 			callMessage.getExpectedOrigin().getLatitude(),
 			callMessage.getExpectedOrigin().getLongitude(),
 			10.0);
 
 		// 2. 해당 택시기사들에게 메세지 전송
-		for(String taxiDriverLonginId : availableTaxiDrivers) {
+		for (String taxiDriverLonginId : availableTaxiDrivers) {
 			sendCallMessageToTaxiDriver(taxiDriverLonginId, callMessage);
 		}
 
@@ -66,9 +61,9 @@ public class KafkaMessageQueueService implements MessageQueueService{
 	public void sendCallMessageToTaxiDriver(String taxiDriverLoginId, CallMessage callMessage) {
 		String destination = "/queue/call";
 		messagingTemplate.convertAndSendToUser(
-			taxiDriverLoginId,					// User: 사용자 이름(Principal name)
-			destination, 						// Destination: 목적지
-			callMessage);						// Payload: 전송할 메세지
+			taxiDriverLoginId,                    // User: 사용자 이름(Principal name)
+			destination,                        // Destination: 목적지
+			callMessage);                        // Payload: 전송할 메세지
 
 	}
 }

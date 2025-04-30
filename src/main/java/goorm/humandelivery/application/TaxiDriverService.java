@@ -116,7 +116,6 @@ public class TaxiDriverService {
 
 
 	public TaxiTypeResponse findTaxiDriverTaxiType(String loginId) {
-
 		return taxiDriverRepository.findTaxiDriversTaxiTypeByLoginId(loginId)
 			.orElseThrow(() -> new EntityNotFoundException("아이디에 해당하는 택시기사가 존재하지 않습니다."));
 	}
