@@ -5,19 +5,16 @@ import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
 import goorm.humandelivery.application.TaxiDriverService;
-import goorm.humandelivery.common.exception.CustomerNotAssignedException;
-import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
+import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.request.CallAcceptRequest;
 import goorm.humandelivery.domain.model.request.CallRejectRequest;
 import goorm.humandelivery.domain.model.request.CallRejectResponse;
-import goorm.humandelivery.domain.model.request.LocationResponse;
 import goorm.humandelivery.domain.model.request.UpdateLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusResponse;
@@ -35,15 +32,13 @@ public class WebSocketTaxiDriverController {
 
 	private final RedisService redisService;
 	private final TaxiDriverService taxiDriverService;
-	private final SimpMessagingTemplate messagingTemplate;
 	private final MessagingService messagingService;
 
 	@Autowired
 	public WebSocketTaxiDriverController(RedisService redisService, TaxiDriverService taxiDriverService,
-		SimpMessagingTemplate messagingTemplate, MessagingService messagingService) {
+		MessagingService messagingService) {
 		this.redisService = redisService;
 		this.taxiDriverService = taxiDriverService;
-		this.messagingTemplate = messagingTemplate;
 		this.messagingService = messagingService;
 	}
 
@@ -58,15 +53,24 @@ public class WebSocketTaxiDriverController {
 	public UpdateTaxiDriverStatusResponse updateStatus(@Valid UpdateTaxiDriverStatusRequest request,
 		Principal principal) {
 
-		log.info("[updateStatus 호출] taxiDriverId : {}, 상태 : {} 으로 변경요청", principal.getName(), request.getStatus());
+		String taxiDriverLoginId = principal.getName();
+		String statusTobe = request.getStatus();
+		log.info("[updateStatus 호출] taxiDriverId : {}, 상태 : {} 으로 변경요청", taxiDriverLoginId, statusTobe);
 
-		// 1. DB에 상태 저장
-		TaxiDriverStatus changedStatus = taxiDriverService.changeStatus(principal.getName(), request.getStatus());
+		// 1. DB에 상태 업데이트
+		TaxiDriverStatus changedStatus = taxiDriverService.changeStatus(taxiDriverLoginId, statusTobe);
 
-		// 2. Redis 에 상태 저장. TTL : 1시간
-		String key = RedisKeyParser.taxiDriverStatus(principal.getName());
+		// 2. 택시타입 조회
+		TaxiType taxiType = taxiDriverService.findTaxiDriverTaxiType(taxiDriverLoginId).getTaxiType();
 
-		redisService.setValueWithTTL(key, changedStatus.name(), Duration.ofHours(1));
+		// 3. Redis 에 택시기사 상태 상태 저장. TTL : 1시간
+		String statusKey
+			= RedisKeyParser.taxiDriverStatus(principal.getName());
+		redisService.setValueWithTTL(statusKey, changedStatus.name(), Duration.ofHours(1));
+
+		// 4. Redis 에 택시기사의 택시 종류 저장. TTL : 1일
+		String taxiTypeKey = RedisKeyParser.taxiDriversTaxiType(taxiDriverLoginId);
+		redisService.setValueWithTTL(taxiTypeKey, taxiType.name(), Duration.ofDays(1));
 
 		return new UpdateTaxiDriverStatusResponse(changedStatus);
 	}
@@ -88,26 +92,10 @@ public class WebSocketTaxiDriverController {
 			location.getLongitude());
 
 		TaxiDriverStatus status = taxiDriverService.getCurrentTaxiDriverStatus(taxiDriverLoginId);
-		LocationResponse response = new LocationResponse(location);
+		TaxiType taxiType = taxiDriverService.getCurrentTaxiType(taxiDriverLoginId);
 
 		// 고객아이디, 택시기사 로케이션
-		// messagingService.sendLocationToCustomer(taxiDriverLoginId, customerLoginId, location, status);
-
-		switch (status) {
-			case OFF_DUTY -> throw new OffDutyLocationUpdateException();
-			case AVAILABLE ->
-				redisService.setLocation(RedisKeyParser.TAXI_DRIVER_LOCATION_KEY, location, taxiDriverLoginId);
-			case RESERVED, ON_DRIVING -> {
-				if (customerLoginId == null) {
-					throw new CustomerNotAssignedException();
-				}
-
-				messagingTemplate.convertAndSendToUser(
-					customerLoginId,
-					"/queue/update-taxidriver-location",
-					response);
-			}
-		}
+		messagingService.sendLocationToCustomer(taxiDriverLoginId, status, taxiType, customerLoginId, location);
 	}
 
 	/**

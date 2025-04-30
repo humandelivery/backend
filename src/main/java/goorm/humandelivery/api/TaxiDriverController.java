@@ -12,20 +12,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
 import goorm.humandelivery.application.TaxiDriverService;
 import goorm.humandelivery.common.security.jwt.JwtUtil;
 import goorm.humandelivery.domain.model.entity.Location;
+import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.request.CreateTaxiDriverRequest;
 import goorm.humandelivery.domain.model.request.LoginTaxiDriverRequest;
 import goorm.humandelivery.domain.model.request.NearbyDriversRequest;
 import goorm.humandelivery.domain.model.response.JwtResponse;
 import goorm.humandelivery.domain.model.response.TaxiDriverResponse;
 import goorm.humandelivery.domain.model.response.TokenInfoResponse;
-import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-
 
 @Slf4j
 @RestController
@@ -87,17 +87,19 @@ public class TaxiDriverController {
 	public ResponseEntity<?> findNearByDrivers(@Valid @RequestBody NearbyDriversRequest request) {
 		log.info("인근 드라이버 확인 메서드");
 
+		// 종류별로 해야한다.
 		Location location = request.getLocation();
 		Double latitude = location.getLatitude();
 		Double longitude = location.getLongitude();
 		Double radiusInKm = request.getRadiusInKm();
+		TaxiType taxiType = request.getTaxiType();
 
-		List<String> nearByDrivers = redisService.findNearByDrivers(RedisKeyParser.TAXI_DRIVER_LOCATION_KEY, latitude,
+		List<String> nearByDrivers = redisService.findNearByDrivers(taxiType, latitude,
 			longitude, radiusInKm);
 
 		if (nearByDrivers.isEmpty()) {
 			radiusInKm += 5;
-			nearByDrivers = redisService.findNearByDrivers(RedisKeyParser.TAXI_DRIVER_LOCATION_KEY, latitude, longitude,
+			nearByDrivers = redisService.findNearByDrivers(taxiType, latitude, longitude,
 				radiusInKm);
 			log.info("반경 확장 후 재조회: {}km", radiusInKm);
 		}
