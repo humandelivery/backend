@@ -16,6 +16,8 @@ import goorm.humandelivery.domain.model.internal.CallMessage;
 import goorm.humandelivery.domain.model.internal.QueueMessage;
 import goorm.humandelivery.domain.model.response.CallTargetTaxiDriverDto;
 import goorm.humandelivery.domain.repository.TaxiDriverRepository;
+import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
+import goorm.humandelivery.infrastructure.redis.RedisService;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -25,6 +27,7 @@ public class KafkaMessageQueueService implements MessageQueueService{
 	private final TaxiDriverRepository taxiDriverRepository;
 	private final SimpMessagingTemplate messagingTemplate;
 	private final KafkaMessageProducer kafkaMessageProducer;
+	private final RedisService redisService;
 
 	@Override
 	public void enqueue(QueueMessage message){
@@ -46,37 +49,26 @@ public class KafkaMessageQueueService implements MessageQueueService{
 		CallMessage callMessage = (CallMessage) message;
 
 		// 1. 출발 위치에서 10분 거리 내의 운행 가능한 택시 목록 찾기
-		List<CallTargetTaxiDriverDto> availableTaxiDrivers = findAvailableTaxiDrivers(callMessage.getExpectedOrigin());
+		List<String> availableTaxiDrivers
+			= redisService.findNearByDrivers(
+				RedisKeyParser.TAXI_DRIVER_LOCATION_KEY,
+			callMessage.getExpectedOrigin().getLatitude(),
+			callMessage.getExpectedOrigin().getLongitude(),
+			10.0);
 
 		// 2. 해당 택시기사들에게 메세지 전송
-		for(CallTargetTaxiDriverDto taxiDriver : availableTaxiDrivers) {
-			sendCallMessageToTaxiDriver(taxiDriver, callMessage);
+		for(String taxiDriverLonginId : availableTaxiDrivers) {
+			sendCallMessageToTaxiDriver(taxiDriverLonginId, callMessage);
 		}
 
 	}
 
-	public List<CallTargetTaxiDriverDto> findAvailableTaxiDrivers(Location expectedOrigin) {
-		// 택시 목록 작성
-		// 실제 코드는 출발 예상지를 기준으로 레디스에서 "빈차"상태이면서 10분 거리 내에 있는 택시를 찾을거임.
-
-		// 현재는 테스트를 위해 목 택시 목록을 만들 거임.
-		List<TaxiDriver> taxiDrivers = taxiDriverRepository.findAll();
-		List<CallTargetTaxiDriverDto> callTargetTaxiDriverDtos = new ArrayList<>();
-
-		for(TaxiDriver taxiDriver : taxiDrivers) {
-			callTargetTaxiDriverDtos.add(CallTargetTaxiDriverDto.from(taxiDriver));
-		}
-
-		return callTargetTaxiDriverDtos;
-	}
-
-	public void sendCallMessageToTaxiDriver(CallTargetTaxiDriverDto taxiDriver, CallMessage callMessage) {
+	public void sendCallMessageToTaxiDriver(String taxiDriverLoginId, CallMessage callMessage) {
 		String destination = "/queue/call";
-		String driverLoginId = taxiDriver.getDriverLoginId();
 		messagingTemplate.convertAndSendToUser(
-			driverLoginId,						// 사용자 이름(Principal name)
-			destination, 						// 목적지
-			callMessage);						// 전송할 메세지
+			taxiDriverLoginId,					// User: 사용자 이름(Principal name)
+			destination, 						// Destination: 목적지
+			callMessage);						// Payload: 전송할 메세지
 
 	}
 }
