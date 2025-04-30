@@ -1,13 +1,40 @@
-
 spring:
   application:
     name: humandelivery
 
   config:
-    import: optional:file:.env[.properties
+    import: optional:file:.env[.properties]
 
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: none
+      dialect: org.hibernate.dialect.H2Dialect
+    show-sql: true
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+
+  # H2 Database Connection
+  datasource:
+    url: ${DB_URL:jdbc:h2:tcp://localhost:9093/~/humandelivery}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+
+  sql:
+    init:
+      mode: always
+
+  # H2 Console Activation
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # Kafka Configuration
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: call-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -18,78 +45,30 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: true
-    properties:
-      hibernate:
-        show_sql: true
-        format_sql: true
-
-#  datasource:
-#    url: ${DB_URL:}
-#    username: sa
-#    password:
-
-  sql:
-    init:
-      mode: always
-# 내장 h2 사용 시 (주석처리된 부분은 참고용입니다)
-  datasource:
-    url: jdbc:h2:file:C:/_Workplace/Spring_workplace/HumanDelivery/database/h2db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password:
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
-#  datasource:
-#    driver-class-name: ${DB_DRIVER:org.h2.Driver}
-
+  # Redis Configuration
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
+# JWT Configuration
 jwt:
   secret:
-    access: "sadpofjaosdjfoapsjdfjaksopdjfpjaskopdjfopasjdpofjapsodfjapsodjfpaoksdjf"
-    accessTokenValidTime: "3600000"
+    access: ${JWT_SECRET_ACCESS:sadpofjaosdjfoapsjdfjaksopdjfpjaskopdjfopasjdpofjapsodfjapsodjfpaoksdjf}
+    accessTokenValidTime: ${JWT_ACCESS_TOKEN_VALID_TIME:3600000}
 
-
-  logging:
-    level:
-      org:
-
-        springframework:
-          web:
-            socket: DEBUG
-          messaging: DEBUG
-        apache:
-          kafka: FATAL
-        kafka:
-          clients: FATAL
-
-
-
-
-
-        hibernate:
-          SQL: debug
-          orm:
-            jdbc:
-              bind: trace
-        org:
-          springframework:
-            web:
-              socket: DEBUG
-            messaging: DEBUG
-            cache : DEBUG
-
-
-
-
+# Logging Level Configuration
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: debug
+        orm:
+          jdbc:
+            bind: trace
+    springframework:
+      web:
+        socket: DEBUG
+      messaging: DEBUG
+      cache: DEBUG
