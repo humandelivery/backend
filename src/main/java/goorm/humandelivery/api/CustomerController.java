@@ -1,6 +1,7 @@
 package goorm.humandelivery.api;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +27,7 @@ public class CustomerController {
 	// 회원가입
 	@PostMapping
 	public ResponseEntity<CreateCustomerResponse> register(@RequestBody @Valid CreateCustomerRequest createCustomerRequest) {
+		log.info("회원가입 메서드 호출");
 		CreateCustomerResponse response = customerService.register(createCustomerRequest);
 
 		return ResponseEntity.ok(response);

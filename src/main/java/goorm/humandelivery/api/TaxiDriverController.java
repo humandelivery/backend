@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import goorm.humandelivery.application.TaxiDriverService;
 import goorm.humandelivery.common.security.jwt.JwtUtil;
 import goorm.humandelivery.domain.model.entity.Location;
@@ -26,6 +25,7 @@ import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+
 
 @Slf4j
 @RestController

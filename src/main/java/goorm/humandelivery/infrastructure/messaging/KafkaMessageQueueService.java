@@ -1,63 +1,46 @@
-package goorm.humandelivery.application;
+package goorm.humandelivery.infrastructure.messaging;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriver;
 import goorm.humandelivery.domain.model.internal.CallMessage;
 import goorm.humandelivery.domain.model.internal.QueueMessage;
 import goorm.humandelivery.domain.model.response.CallTargetTaxiDriverDto;
 import goorm.humandelivery.domain.repository.TaxiDriverRepository;
+import lombok.RequiredArgsConstructor;
 
-// 책임: 메세지 큐와 관련된 로직만을 처리하는 전담 서비스
 @Service
-public class BlockingMessageQueueService implements MessageQueueService {
+@RequiredArgsConstructor
+public class KafkaMessageQueueService implements MessageQueueService{
 
-	private final BlockingQueue<QueueMessage> blockingMessageQueue = new LinkedBlockingQueue<>();
+	private final KafkaTemplate<String, QueueMessage> kafkaTemplate;
+	private final String topicName = "taxi-call-queue";
 	@Autowired
 	private TaxiDriverRepository taxiDriverRepository;
 	@Autowired
 	private SimpMessagingTemplate messagingTemplate;
 
+	@Override
+	public void enqueue(QueueMessage message){
+		kafkaTemplate.send(topicName, message);
+	};
 
 	@Override
-	public void enqueue(QueueMessage message) {
-		blockingMessageQueue.offer(message);
-	}
+	public void processMessage(){ // 카프카 쓸때는 안쓰는 메서드
+	};
 
-	// public QueueMessage take() throws InterrupedException{
-	// 	return messageQueue.take();
-	// }
-
-	@Override
-	@Scheduled(fixedDelay = 1000)
-	public void processMessage(){
-		while(!blockingMessageQueue.isEmpty()){
-			QueueMessage message = blockingMessageQueue.poll();
-			processMessage(message);
-		}
-	}
-
-	public List<CallTargetTaxiDriverDto> findAvailableTaxiDrivers(String expectedOrigin) {
-		// 택시 목록 작성
-		// 실제 코드는 출발 예상지를 기준으로 레디스에서 "빈차"상태이면서 10분 거리 내에 있는 택시를 찾을거임.
-
-		// 현재는 테스트를 위해 목 택시 목록을 만들 거임.
-		List<TaxiDriver> taxiDrivers = taxiDriverRepository.findAll();
-		List<CallTargetTaxiDriverDto> callTargetTaxiDriverDtos = new ArrayList<>();
-
-		for(TaxiDriver taxiDriver : taxiDrivers) {
-			callTargetTaxiDriverDtos.add(CallTargetTaxiDriverDto.from(taxiDriver));
-		}
-
-		return callTargetTaxiDriverDtos;
+	@KafkaListener(topics = "taxi-call-queue", groupId = "call-group")
+	public void listen(QueueMessage messgae){
+		processMessage(messgae);
 	}
 
 	@Override
@@ -80,6 +63,21 @@ public class BlockingMessageQueueService implements MessageQueueService {
 
 	}
 
+	public List<CallTargetTaxiDriverDto> findAvailableTaxiDrivers(Location expectedOrigin) {
+		// 택시 목록 작성
+		// 실제 코드는 출발 예상지를 기준으로 레디스에서 "빈차"상태이면서 10분 거리 내에 있는 택시를 찾을거임.
+
+		// 현재는 테스트를 위해 목 택시 목록을 만들 거임.
+		List<TaxiDriver> taxiDrivers = taxiDriverRepository.findAll();
+		List<CallTargetTaxiDriverDto> callTargetTaxiDriverDtos = new ArrayList<>();
+
+		for(TaxiDriver taxiDriver : taxiDrivers) {
+			callTargetTaxiDriverDtos.add(CallTargetTaxiDriverDto.from(taxiDriver));
+		}
+
+		return callTargetTaxiDriverDtos;
+	}
+
 	public void sendCallMessageToTaxiDriver(CallTargetTaxiDriverDto taxiDriver, CallMessage callMessage) {
 		String destination = "/queue/call";
 		String driverLoginId = taxiDriver.getDriverLoginId();
@@ -89,5 +87,4 @@ public class BlockingMessageQueueService implements MessageQueueService {
 			callMessage);						// 전송할 메세지
 
 	}
-
 }
