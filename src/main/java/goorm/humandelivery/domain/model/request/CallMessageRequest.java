@@ -1,6 +1,6 @@
 package goorm.humandelivery.domain.model.request;
 
-import goorm.humandelivery.domain.model.entity.Call;
+import goorm.humandelivery.domain.model.entity.CallInfo;
 import goorm.humandelivery.domain.model.entity.Customer;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiType;
@@ -24,7 +24,7 @@ public class CallMessageRequest {
 		return new CallMessage(callId, expectedOrigin, expectedDestination, taxiType);
 	}
 
-	public Call toCall(Customer customer) {
-		return new Call(null, customer, expectedOrigin, expectedDestination, taxiType);
+	public CallInfo toCall(Customer customer) {
+		return new CallInfo(null, customer, expectedOrigin, expectedDestination, taxiType);
 	}
 }

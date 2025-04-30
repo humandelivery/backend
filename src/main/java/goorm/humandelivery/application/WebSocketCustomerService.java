@@ -2,12 +2,10 @@ package goorm.humandelivery.application;
 
 import org.springframework.stereotype.Service;
 
-import goorm.humandelivery.domain.model.entity.Call;
+import goorm.humandelivery.domain.model.entity.CallInfo;
 import goorm.humandelivery.domain.model.entity.Customer;
 import goorm.humandelivery.domain.model.request.CallMessageRequest;
 import goorm.humandelivery.domain.repository.CallRepository;
-import goorm.humandelivery.domain.repository.CustomerRepository;
-import goorm.humandelivery.infrastructure.messaging.BlockingMessageQueueService;
 import goorm.humandelivery.infrastructure.messaging.KafkaMessageQueueService;
 import lombok.RequiredArgsConstructor;
 
@@ -27,7 +25,7 @@ public class WebSocketCustomerService {
 		messageQueueService.enqueue(request.toQueueMessage(callId));
 	}
 
-	public Call saveCall(CallMessageRequest request, String senderId){
+	public CallInfo saveCall(CallMessageRequest request, String senderId){
 		Customer customer = customerService.findCustomerByLoginId(senderId);
 		return callRepository.save(request.toCall(customer));
 	}
