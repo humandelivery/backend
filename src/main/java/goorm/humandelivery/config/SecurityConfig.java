@@ -27,7 +27,7 @@ public class SecurityConfig {
 			.formLogin(AbstractHttpConfigurer::disable)
 			.httpBasic(AbstractHttpConfigurer::disable)
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers("/api/v1/taxi-driver",
+				.requestMatchers("/api/v1/taxi-driver/**",
 					"/api/v1/taxi-driver/auth-tokens",
 					"/api/v1/taxi-driver/token-info",
 					"/api/v1/customer",
