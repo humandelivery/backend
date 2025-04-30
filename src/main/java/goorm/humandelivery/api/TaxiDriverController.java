@@ -3,7 +3,6 @@ package goorm.humandelivery.api;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -13,28 +12,34 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import goorm.humandelivery.application.TaxiDriverService;
 import goorm.humandelivery.common.security.jwt.JwtUtil;
+import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.request.CreateTaxiDriverRequest;
 import goorm.humandelivery.domain.model.request.LoginTaxiDriverRequest;
+import goorm.humandelivery.domain.model.request.NearbyDriversRequest;
 import goorm.humandelivery.domain.model.response.JwtResponse;
 import goorm.humandelivery.domain.model.response.TaxiDriverResponse;
 import goorm.humandelivery.domain.model.response.TokenInfoResponse;
+import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
+import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.validation.Valid;
-import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/taxi-driver")
 public class TaxiDriverController {
 
 	private final TaxiDriverService taxiDriverService;
 	private final JwtUtil jwtUtil;
+	private final RedisService redisService;
 
-	@Autowired
-	public TaxiDriverController(TaxiDriverService taxiDriverService, JwtUtil jwtUtil) {
-		this.taxiDriverService = taxiDriverService;
+	public TaxiDriverController(JwtUtil jwtUtil, RedisService redisService, TaxiDriverService taxiDriverService) {
 		this.jwtUtil = jwtUtil;
+		this.redisService = redisService;
+		this.taxiDriverService = taxiDriverService;
 	}
 
 	// 회원가입
@@ -49,9 +54,7 @@ public class TaxiDriverController {
 				.map(FieldError::getDefaultMessage)
 				.toList();
 
-			return ResponseEntity.badRequest().body(Map.of(
-				"errors", fieldErrors
-			));
+			return ResponseEntity.badRequest().body(Map.of("errors", fieldErrors));
 		}
 
 		TaxiDriverResponse response = taxiDriverService.register(taxiDriverRequest);
@@ -77,5 +80,29 @@ public class TaxiDriverController {
 		String token = authHeader.replace("Bearer ", "");
 		TokenInfoResponse tokenInfoResponse = jwtUtil.extractTokenInfo(token);
 		return ResponseEntity.ok(tokenInfoResponse);
+	}
+
+	// 인근 드라이버 확인 메서드 - 테스트 용도입니다.
+	@PostMapping("/search/nearbydrivers")
+	public ResponseEntity<?> findNearByDrivers(@Valid @RequestBody NearbyDriversRequest request) {
+		log.info("인근 드라이버 확인 메서드");
+
+		Location location = request.getLocation();
+		Double latitude = location.getLatitude();
+		Double longitude = location.getLongitude();
+		Double radiusInKm = request.getRadiusInKm();
+
+		List<String> nearByDrivers = redisService.findNearByDrivers(RedisKeyParser.TAXI_DRIVER_LOCATION_KEY, latitude,
+			longitude, radiusInKm);
+
+		if (nearByDrivers.isEmpty()) {
+			radiusInKm += 5;
+			nearByDrivers = redisService.findNearByDrivers(RedisKeyParser.TAXI_DRIVER_LOCATION_KEY, latitude, longitude,
+				radiusInKm);
+			log.info("반경 확장 후 재조회: {}km", radiusInKm);
+		}
+
+		log.info("nearByDrivers : {}", nearByDrivers);
+		return ResponseEntity.ok(nearByDrivers);
 	}
 }
