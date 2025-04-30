@@ -22,26 +22,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class KafkaMessageQueueService implements MessageQueueService{
 
-	private final KafkaTemplate<String, QueueMessage> kafkaTemplate;
-	private final String topicName = "taxi-call-queue";
-	@Autowired
-	private TaxiDriverRepository taxiDriverRepository;
-	@Autowired
-	private SimpMessagingTemplate messagingTemplate;
+	private final TaxiDriverRepository taxiDriverRepository;
+	private final SimpMessagingTemplate messagingTemplate;
+	private final KafkaMessageProducer kafkaMessageProducer;
 
 	@Override
 	public void enqueue(QueueMessage message){
-		kafkaTemplate.send(topicName, message);
+		kafkaMessageProducer.send(message);
 	};
 
 	@Override
 	public void processMessage(){ // 카프카 쓸때는 안쓰는 메서드
 	};
-
-	@KafkaListener(topics = "taxi-call-queue", groupId = "call-group")
-	public void listen(QueueMessage messgae){
-		processMessage(messgae);
-	}
 
 	@Override
 	public void processMessage(QueueMessage message){
