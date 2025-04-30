@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @AllArgsConstructor
+@NoArgsConstructor
 public class CreateCustomerRequest {
 
 	@NotBlank(message = "아이디를 입력해 주세요.")
