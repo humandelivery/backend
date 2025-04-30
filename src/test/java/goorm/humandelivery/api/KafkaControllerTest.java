@@ -17,7 +17,7 @@ public class KafkaControllerTest {
 	@PostMapping("/test-call")
 	public String testKafkaCall(){
 		CallMessage msg = new CallMessage(
-			"tester123",
+			1L,
 			new Location(1.0,1.1),
 			new Location(2.2,2.3),
 			TaxiType.VENTI);

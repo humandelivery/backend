@@ -5,6 +5,7 @@ import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.internal.CallMessage;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
