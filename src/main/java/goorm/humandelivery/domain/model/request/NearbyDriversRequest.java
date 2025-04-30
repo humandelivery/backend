@@ -1,6 +1,7 @@
 package goorm.humandelivery.domain.model.request;
 
 import goorm.humandelivery.domain.model.entity.Location;
+import goorm.humandelivery.domain.model.entity.TaxiType;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,5 +21,10 @@ public class NearbyDriversRequest {
 
 	@NotNull
 	private Double radiusInKm;
+
+	@NotNull
+	private TaxiType taxiType;
+
+
 
 }

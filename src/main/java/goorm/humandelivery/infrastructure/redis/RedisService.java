@@ -17,6 +17,7 @@ import org.springframework.data.redis.domain.geo.GeoLocation;
 import org.springframework.stereotype.Service;
 
 import goorm.humandelivery.domain.model.entity.Location;
+import goorm.humandelivery.domain.model.entity.TaxiType;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -43,13 +44,18 @@ public class RedisService {
 	}
 
 	// GEOADD taxidriver:driverId:location 126.9780 37.5665 driverId
-	public void setLocation(String key, Location location, String loginId) {
+	public void setLocation(String key, String loginId, Location location) {
 		redisTemplate.opsForGeo().add(key, new Point(location.getLongitude(), location.getLatitude()), loginId);
 	}
 
 
 
-	public List<String> findNearByDrivers(String key, double latitude, double longitude, double radiusInKm) {
+	public List<String> findNearByDrivers(TaxiType taxiType, double latitude, double longitude, double radiusInKm) {
+		String strTaxiType = taxiType.name().toLowerCase();
+		log.info("strTaxiType : {} ", strTaxiType);
+
+		String key = RedisKeyParser.taxiDriverLocationKeyFrom(taxiType);
+
 		GeoOperations<String, String> geoOps = redisTemplate.opsForGeo();
 
 		// new Point 내부 인자는 경도 / 위도 순서로 넣습니다

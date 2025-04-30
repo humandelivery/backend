@@ -16,13 +16,16 @@ import goorm.humandelivery.domain.model.request.CreateTaxiDriverRequest;
 import goorm.humandelivery.domain.model.request.CreateTaxiRequest;
 import goorm.humandelivery.domain.model.request.LoginTaxiDriverRequest;
 import goorm.humandelivery.domain.model.response.TaxiDriverResponse;
+import goorm.humandelivery.domain.model.response.TaxiTypeResponse;
 import goorm.humandelivery.domain.repository.TaxiDriverRepository;
 import goorm.humandelivery.domain.repository.TaxiRepository;
 import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class TaxiDriverService {
@@ -52,6 +55,7 @@ public class TaxiDriverService {
 		// 엔티티는 DTO 를 몰라야 한다.
 		return TaxiDriverResponse.from(savedTaxiDriver);
 	}
+
 
 	public void validate(LoginTaxiDriverRequest loginTaxiDriverRequest) {
 
@@ -111,9 +115,15 @@ public class TaxiDriverService {
 	}
 
 
-	public TaxiDriverStatus getCurrentTaxiDriverStatus(String loginId) {
+	public TaxiTypeResponse findTaxiDriverTaxiType(String loginId) {
 
-		String key = RedisKeyParser.taxiDriverStatus(loginId);
+		return taxiDriverRepository.findTaxiDriversTaxiTypeByLoginId(loginId)
+			.orElseThrow(() -> new EntityNotFoundException("아이디에 해당하는 택시기사가 존재하지 않습니다."));
+	}
+
+	public TaxiDriverStatus getCurrentTaxiDriverStatus(String taxiDriverLoginId) {
+
+		String key = RedisKeyParser.taxiDriverStatus(taxiDriverLoginId);
 
 		// 1.Redis 조회
 		String status = redisService.getValue(key);
@@ -123,7 +133,7 @@ public class TaxiDriverService {
 		}
 
 		// 2.없으면 DB 에서 조회.
-		TaxiDriverStatus dbStatus = taxiDriverRepository.findByLoginId(loginId)
+		TaxiDriverStatus dbStatus = taxiDriverRepository.findByLoginId(taxiDriverLoginId)
 			.orElseThrow(() -> new EntityNotFoundException("아이디에 해당하는 택시기사가 존재하지 않습니다."))
 			.getStatus();
 
@@ -131,5 +141,28 @@ public class TaxiDriverService {
 		redisService.setValueWithTTL(key, dbStatus.name(), Duration.ofHours(1));
 
 		return dbStatus;
+	}
+
+	public TaxiType getCurrentTaxiType(String taxiDriverLoginId) {
+		String key = RedisKeyParser.taxiDriversTaxiType(taxiDriverLoginId);
+
+		// 1. redis 조회
+		String stringTaxiType = redisService.getValue(key);
+
+		if (stringTaxiType != null) {
+			return TaxiType.valueOf(stringTaxiType);
+		}
+
+		// 2. 없으면 DB 에서 조회
+		TaxiTypeResponse taxiTypeResponse = taxiDriverRepository.findTaxiDriversTaxiTypeByLoginId(taxiDriverLoginId)
+			.orElseThrow(() -> new EntityNotFoundException("아이디에 해당하는 택시기사가 존재하지 않습니다."));
+
+		TaxiType taxiType = taxiTypeResponse.getTaxiType();
+
+		// 3. 이후 redis 에 캐싱
+		redisService.setValueWithTTL(key, taxiType.name(), Duration.ofDays(1));
+
+		return taxiType;
+
 	}
 }

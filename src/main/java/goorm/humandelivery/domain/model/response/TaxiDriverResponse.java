@@ -4,9 +4,11 @@ import goorm.humandelivery.domain.model.entity.Taxi;
 import goorm.humandelivery.domain.model.entity.TaxiDriver;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
+@ToString
 public class TaxiDriverResponse {
 
 	private String loginId;
