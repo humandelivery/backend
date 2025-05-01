@@ -80,6 +80,5 @@ public class KafkaMessageQueueService implements MessageQueueService {
 			taxiDriverLoginId,					// User: 사용자 이름(Principal name)
 			destination,						// Destination: 목적지
 			callMessage);						// Payload: 전송할 메세지
-
 	}
 }
