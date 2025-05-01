@@ -5,6 +5,7 @@ import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 
 import goorm.humandelivery.common.exception.CustomerNotAssignedException;
+import goorm.humandelivery.common.exception.NoAvailableTaxiException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.domain.model.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,13 @@ public class StompExceptionAdvice {
 	public ErrorResponse handleCustomerNotAssignedException(CustomerNotAssignedException ex) {
 		log.error("exception: {}", ex.getClass());
 		return new ErrorResponse("CustomerNotAssignedException", ex.getMessage());
+	}
+
+	@MessageExceptionHandler(NoAvailableTaxiException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleNoAvailableTaxiException(NoAvailableTaxiException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("NoAvailableTaxiException", ex.getMessage());
 	}
 
 }

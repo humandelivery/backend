@@ -16,7 +16,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.domain.geo.GeoLocation;
 import org.springframework.stereotype.Service;
 
+import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.entity.Location;
+import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import lombok.extern.slf4j.Slf4j;
 
@@ -68,5 +70,31 @@ public class RedisService {
 			.map(GeoResult::getContent)
 			.map(GeoLocation::getName)
 			.toList();
+	}
+
+	public List<String> findNearByAvailableDrivers(TaxiType taxiType, double latitude, double longitude, double radiusInKm) {
+
+		// String key = RedisKeyParser.taxiDriverLocationKeyFrom(taxiType);
+		String key = RedisKeyParser.getTaxiDriverLocationKeyBy(TaxiDriverStatus.AVAILABLE, taxiType);
+
+
+		GeoOperations<String, String> geoOps = redisTemplate.opsForGeo();
+
+		// new Point 내부 인자는 경도 / 위도 순서로 넣습니다
+		GeoResults<RedisGeoCommands.GeoLocation<String>> results = geoOps.radius(
+			key,
+			new Circle(new Point(longitude, latitude), new Distance(radiusInKm, Metrics.KILOMETERS))
+		);
+
+		return results.getContent().stream()
+			.map(GeoResult::getContent)
+			.map(GeoLocation::getName)
+			.toList();
+	}
+
+	// 콜 생성 시 redis 에 저장
+	public void setCallWith(Long callId, CallStatus callStatus) {
+		String key = RedisKeyParser.callStatus(callId);
+		redisTemplate.opsForValue().set(key, callStatus.name(), Duration.ofMinutes(30));
 	}
 }

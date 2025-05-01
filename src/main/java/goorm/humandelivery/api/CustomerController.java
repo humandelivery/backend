@@ -27,18 +27,18 @@ public class CustomerController {
 	// 회원가입
 	@PostMapping
 	public ResponseEntity<CreateCustomerResponse> register(@RequestBody @Valid CreateCustomerRequest createCustomerRequest) {
-		log.info("회원가입 메서드 호출");
+		log.info("승객 회원가입 요청 수신");
 		CreateCustomerResponse response = customerService.register(createCustomerRequest);
-
+		log.info("신규 승객 회원 DB 저장 완료");
 		return ResponseEntity.ok(response);
 	}
 
 	// 로그인
 	@PostMapping("/auth-tokens")
 	public ResponseEntity<LoginCustomerResponse> login(@RequestBody @Valid LoginCustomerRequest loginCustomerRequest) {
-		log.info("customer login 호출");
+		log.info("승객 로그인 요청 수신");
 		LoginCustomerResponse response = customerService.authenticateAndGenerateToken(loginCustomerRequest);
-
+		log.info("승객 토근 발급 완료");
 		return ResponseEntity.ok(response);
 	}
 
