@@ -17,6 +17,7 @@ import org.springframework.data.redis.domain.geo.GeoLocation;
 import org.springframework.stereotype.Service;
 
 import goorm.humandelivery.domain.model.entity.Location;
+import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,6 +36,10 @@ public class RedisService {
 		redisTemplate.opsForValue().set(key, value);
 	}
 
+	public boolean setValueIfAbsent(String key, String value) {
+		return redisTemplate.opsForValue().setIfAbsent(key, value);
+	}
+
 	public String getValue(String key) {
 		return redisTemplate.opsForValue().get(key);
 	}
@@ -43,18 +48,24 @@ public class RedisService {
 		redisTemplate.opsForValue().set(key, value, ttl);
 	}
 
+	public void setValueWithTTLIfAbsent(String key, String value, Duration ttl) {
+		redisTemplate.opsForValue().setIfAbsent(key, value, ttl);
+	}
+
 	// GEOADD taxidriver:driverId:location 126.9780 37.5665 driverId
 	public void setLocation(String key, String loginId, Location location) {
 		redisTemplate.opsForGeo().add(key, new Point(location.getLongitude(), location.getLatitude()), loginId);
 	}
 
 
+	// 택시 타입별, 출발지로부터 인근 택시기사 조회
+	// 택시가 많아지면 느려진다!
+	// 조건들이 추가됐을 때 조회가 가능할지......
+	public List<String> findNearByAvailableDrivers(TaxiType taxiType, double latitude, double longitude, double radiusInKm) {
 
-	public List<String> findNearByDrivers(TaxiType taxiType, double latitude, double longitude, double radiusInKm) {
-		String strTaxiType = taxiType.name().toLowerCase();
-		log.info("strTaxiType : {} ", strTaxiType);
+		// String key = RedisKeyParser.taxiDriverLocationKeyFrom(taxiType);
+		String key = RedisKeyParser.getTaxiDriverLocationKeyBy(TaxiDriverStatus.AVAILABLE, taxiType);
 
-		String key = RedisKeyParser.taxiDriverLocationKeyFrom(taxiType);
 
 		GeoOperations<String, String> geoOps = redisTemplate.opsForGeo();
 
@@ -68,5 +79,26 @@ public class RedisService {
 			.map(GeoResult::getContent)
 			.map(GeoLocation::getName)
 			.toList();
+	}
+
+	public void setDriversStatus(String taxiDriverLoginId, TaxiDriverStatus status) {
+		String statusKey = RedisKeyParser.taxiDriverStatus(taxiDriverLoginId);
+		setValueWithTTL(statusKey, status.name(), Duration.ofHours(1));
+
+	}
+
+	public void setDriversTaxiType(String taxiDriverLoginId, TaxiType taxiType) {
+		String taxiTypeKey = RedisKeyParser.taxiDriversTaxiType(taxiDriverLoginId);
+		setValueWithTTLIfAbsent(taxiTypeKey, taxiType.name(), Duration.ofDays(1));
+	}
+
+	public void setActive(String taxiDriverLoginId) {
+
+		log.info("setactive 실행 ");
+		redisTemplate.opsForSet().add(RedisKeyParser.ACTIVE_TAXI_DRIVER_KEY, taxiDriverLoginId);
+	}
+
+	public void setOffDuty(String taxiDriverLoginId) {
+		redisTemplate.opsForSet().remove(RedisKeyParser.ACTIVE_TAXI_DRIVER_KEY, taxiDriverLoginId);
 	}
 }

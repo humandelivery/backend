@@ -94,14 +94,12 @@ public class TaxiDriverController {
 		Double radiusInKm = request.getRadiusInKm();
 		TaxiType taxiType = request.getTaxiType();
 
-		List<String> nearByDrivers = redisService.findNearByDrivers(taxiType, latitude,
+		List<String> nearByDrivers = redisService.findNearByAvailableDrivers(taxiType, latitude,
 			longitude, radiusInKm);
 
 		if (nearByDrivers.isEmpty()) {
 			radiusInKm += 5;
-
-			nearByDrivers = redisService.findNearByDrivers(taxiType, latitude, longitude, radiusInKm);
-
+			nearByDrivers = redisService.findNearByAvailableDrivers(taxiType, latitude, longitude, radiusInKm);
 			log.info("반경 확장 후 재조회: {}km", radiusInKm);
 		}
 

@@ -1,14 +1,13 @@
 package goorm.humandelivery.api;
 
 import java.security.Principal;
-import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
-
 import goorm.humandelivery.application.TaxiDriverService;
+import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
@@ -20,7 +19,6 @@ import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusResponse;
 import goorm.humandelivery.domain.model.response.CallAcceptResponse;
 import goorm.humandelivery.infrastructure.messaging.MessagingService;
-import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -63,20 +61,33 @@ public class WebSocketTaxiDriverController {
 		// 2. 택시타입 조회
 		TaxiType taxiType = taxiDriverService.findTaxiDriverTaxiType(taxiDriverLoginId).getTaxiType();
 
-		// 3. Redis 에 택시기사 상태 상태 저장. TTL : 1시간
-		String statusKey
-			= RedisKeyParser.taxiDriverStatus(principal.getName());
-		redisService.setValueWithTTL(statusKey, changedStatus.name(), Duration.ofHours(1));
+		// OFF_DUTY 면 Redis 에서 다 제거.
+		if (changedStatus == TaxiDriverStatus.OFF_DUTY) {
+			// 운행 종료. active 택시기사 목록에서 제외
+			log.info("[updateStatus : 택시기사 비활성화. active 목록에서 제외] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId,
+				statusTobe);
+			redisService.setOffDuty(taxiDriverLoginId);
+			return new UpdateTaxiDriverStatusResponse(changedStatus);
+		}
+
+		// 3. Redis 에 택시기사 상태 저장. TTL : 1시간
+		log.info("[updateStatus : redis 택시기사 상태 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId, statusTobe);
+		redisService.setDriversStatus(taxiDriverLoginId, changedStatus);
 
 		// 4. Redis 에 택시기사의 택시 종류 저장. TTL : 1일
-		String taxiTypeKey = RedisKeyParser.taxiDriversTaxiType(taxiDriverLoginId);
-		redisService.setValueWithTTL(taxiTypeKey, taxiType.name(), Duration.ofDays(1));
+		log.info("[updateStatus : redis 택시기사 종류 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId, statusTobe);
+		redisService.setDriversTaxiType(taxiDriverLoginId, taxiType);
+
+		log.info("[updateStatus : redis 택시기사 active set 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId,
+			statusTobe);
+		// active driver set 에 없으면 추가
+		redisService.setActive(taxiDriverLoginId);
 
 		return new UpdateTaxiDriverStatusResponse(changedStatus);
 	}
 
 	/**
-	 * 택시운전기사 위치정보 업데이트 : 운행중 상태인 경우
+	 * 택시운전기사 위치정보 업데이트
 	 * @param request
 	 * @param principal
 	 * @return UpdateLocationResponse
@@ -97,7 +108,11 @@ public class WebSocketTaxiDriverController {
 		// redis 에서 택시종류조회 -> 없으면 DB 조회 -> redis 저장 -> 반환
 		TaxiType taxiType = taxiDriverService.getCurrentTaxiType(taxiDriverLoginId);
 
-		// 고객아이디, 택시기사 로케이션
+		if (status == TaxiDriverStatus.OFF_DUTY) {
+			throw new OffDutyLocationUpdateException();
+		}
+
+		// 택시기사 위치정보 저장
 		messagingService.sendMessage(taxiDriverLoginId, status, taxiType, customerLoginId, location);
 	}
 
@@ -110,20 +125,36 @@ public class WebSocketTaxiDriverController {
 	@SendToUser("/queue/accept-call-result")
 	public CallAcceptResponse acceptTaxiCall(CallAcceptRequest request, Principal principal) {
 
-		// 콜 수락 들어오면..?
-		// 콜 아이디를 redis에 씀
-		// redis에 쓴거 성공하면 -> 배차 완료임..
-		// 배차는 내가 만듬.
-
 		/**
 		 * TODO : 택시 요청 수락 -> Redis 저장 -> 성공 실패 여부 응답으로 줘야함. -> 성공 시? 배차 -> 운행정보까지 완료시켜야함.
-		 *
-		 * 배차 성공 시 ?
-		 * 배차 생성 -> 사용자에게 배차 완료 응답 줘야함.
-		 *
-		 * 수락이 되면? 정보로 배차 완료 확인  유저아이디, 출발예정위치, 도착예정위치 보내줘야함
 		 */
 
+		Long callId = request.getCallId();
+		String taxiDriverLoginId = principal.getName();
+
+		boolean isSuccess = redisService.setValueIfAbsent(String.valueOf(callId), taxiDriverLoginId);
+
+		/**
+		 * 1.
+		 * 콜 생성 -> 택시기사에게 전달 -> 택시기사 콜 응답 -> 레디스 저장 성공 -> 배차 생성 -> 운행 생성 -> 택시기사 상태 반경 -> 택시기사에게 배차완료 응답 전송
+		 *
+		 * 2.
+		 * 콜 생성 -> 택시기사에게 전달 -> 택시기사 콜 응답  -> 레디스 저장 성공 -> 배차 생성 ->  택시기사 응답이 없으면?? 택시기사 연결이 끊기면??
+		 *  예약중상태에서 택시기사 위치정보 갱신이 안되거나 하면 예약 취소해야함.
+		 *
+		 * 배차 생성되면.......배차 생성되면.....
+		 */
+
+		/**
+		 * TODO : 배차 후에는 available에서 해당 택시기사 지워야함.
+		 */
+		if (!isSuccess) {
+			// 택시기사에게 배차 실패 메세지 보내기
+		}
+
+		// 성공 시 배차 엔티티, 운행 엔티티 생성, 기사상태변경도 필요함.
+
+		// 아래는 임시
 		CallAcceptResponse response = new CallAcceptResponse();
 		return response;
 	}

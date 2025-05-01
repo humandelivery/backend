@@ -45,7 +45,7 @@ public class KafkaMessageQueueService implements MessageQueueService {
 
 		// 1. 출발 위치에서 10분 거리 내의 운행 가능한 택시 목록 찾기
 		List<String> availableTaxiDrivers
-			= redisService.findNearByDrivers(
+			= redisService.findNearByAvailableDrivers(
 			callMessage.getTaxiType(),
 			callMessage.getExpectedOrigin().getLatitude(),
 			callMessage.getExpectedOrigin().getLongitude(),
