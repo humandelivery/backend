@@ -6,6 +6,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import goorm.humandelivery.common.exception.NoAvailableTaxiException;
+import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.internal.CallMessage;
 import goorm.humandelivery.domain.model.internal.QueueMessage;
 import goorm.humandelivery.domain.repository.TaxiDriverRepository;
@@ -66,6 +67,7 @@ public class KafkaMessageQueueService implements MessageQueueService {
 		}
 
 		// 2. 해당 택시기사들에게 메세지 전송
+		redisService.setCallWith(callMessage.getCallId(), CallStatus.SENT);
 		for (String taxiDriverLonginId : availableTaxiDrivers) {
 			sendCallMessageToTaxiDriver(taxiDriverLonginId, callMessage);
 		}
