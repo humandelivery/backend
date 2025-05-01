@@ -12,6 +12,7 @@ import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.request.LocationResponse;
+import goorm.humandelivery.domain.model.response.ErrorResponse;
 import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 public class MessagingService {
 
 	private static final String LOCATION_TO_USER = "/queue/update-taxidriver-location";
+	private static final String DISPATCH_FAIL_MESSAGE_TO_USER = "/queue/dispatch-error";
+	private static final String DISPATCH_FAIL_MESSAGE_TO_TAXI_DRIVER = "/queue/dispatch-canceled";
+
+
 	private final SimpMessagingTemplate messagingTemplate;
 	private final RedisService redisService;
 
@@ -67,5 +72,22 @@ public class MessagingService {
 			messagingTemplate.convertAndSendToUser(customerLoginId, LOCATION_TO_USER, response);
 		}
 
+	}
+
+	public void sendDispatchFailMessageToUser(String customerLoginId) {
+		messagingTemplate.convertAndSendToUser(
+			customerLoginId,
+			DISPATCH_FAIL_MESSAGE_TO_USER,
+			new ErrorResponse("배차실패", "택시와 연결이 끊어졌습니다. 다시 배차를 시도합니다.")
+		);
+
+	}
+
+	public void sendDispatchFailMessageToTaxiDriver(String driverLoginId) {
+		messagingTemplate.convertAndSendToUser(
+			driverLoginId,
+			DISPATCH_FAIL_MESSAGE_TO_TAXI_DRIVER,
+			new ErrorResponse("배차취소", "위치 미전송으로 인해 배차가 취소되었습니다.")
+		);
 	}
 }

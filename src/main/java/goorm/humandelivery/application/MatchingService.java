@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import goorm.humandelivery.common.exception.CallInfoEntityNotFoundException;
+import goorm.humandelivery.common.exception.MatchingEntityNotFoundException;
 import goorm.humandelivery.common.exception.TaxiDriverEntityNotFoundException;
 import goorm.humandelivery.domain.model.entity.CallInfo;
 import goorm.humandelivery.domain.model.entity.Matching;
@@ -45,5 +46,13 @@ public class MatchingService {
 			.taxiDriver(taxiDriver).build();
 
 		matchingRepository.save(matching);
+	}
+
+	@Transactional
+	public void deleteByCallId(Long callId) {
+		Matching matching = matchingRepository.findMatchingByCallInfoId(callId).orElseThrow(
+			MatchingEntityNotFoundException::new
+		);
+		matchingRepository.delete(matching);
 	}
 }

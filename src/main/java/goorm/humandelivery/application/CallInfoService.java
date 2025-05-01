@@ -14,7 +14,6 @@ public class CallInfoService {
 
 	private final CallInfoRepository callInfoRepository;
 
-
 	@Autowired
 	public CallInfoService(CallInfoRepository callInfoRepository) {
 		this.callInfoRepository = callInfoRepository;
@@ -25,4 +24,7 @@ public class CallInfoService {
 			.orElseThrow(CallInfoEntityNotFoundException::new);
 	}
 
+	public String findCustomerLoginIdById(Long id) {
+		return callInfoRepository.findCustomerLoginIdByCallId(id).orElseThrow(CallInfoEntityNotFoundException::new);
+	}
 }

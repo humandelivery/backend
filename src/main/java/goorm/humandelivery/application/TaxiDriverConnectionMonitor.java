@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import goorm.humandelivery.domain.model.entity.TaxiType;
+import goorm.humandelivery.infrastructure.messaging.MessagingService;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,11 +21,21 @@ import lombok.extern.slf4j.Slf4j;
 public class TaxiDriverConnectionMonitor {
 
 	private final RedisService redisService;
+	private final MatchingService matchingService;
+	private final TaxiDriverService taxiDriverService;
+	private final MessagingService messagingService;
+	private final CallInfoService callInfoService;
+
 	private static final long TIMEOUT_MILLIS = 10_000;
 
 	@Autowired
-	public TaxiDriverConnectionMonitor(RedisService redisService) {
+	public TaxiDriverConnectionMonitor(RedisService redisService, MatchingService matchingService,
+		TaxiDriverService taxiDriverService, MessagingService messagingService, CallInfoService callInfoService) {
 		this.redisService = redisService;
+		this.matchingService = matchingService;
+		this.taxiDriverService = taxiDriverService;
+		this.messagingService = messagingService;
+		this.callInfoService = callInfoService;
 	}
 
 	/**
@@ -51,32 +63,40 @@ public class TaxiDriverConnectionMonitor {
 			.toList();
 
 		// 3. reservedDrivers 의 마지막 위치정보 시간 조회
-		for (String reservedDriver : reservedDrivers) {
-			String lastUpdateStr = redisService.getLastUpdate(reservedDriver);
+		for (String driverLoginId : reservedDrivers) {
+			String lastUpdateStr = redisService.getLastUpdate(driverLoginId);
 
-			if (lastUpdateStr == null) {
-				/**
-				 * TODO : 배차 취소 로직 구현 콜, 매칭, 운행정보 엔티티 삭제 및 택시 상태 변경, Redis 에서 관련 데이터 제거 필요.
-				 */
+			if (lastUpdateStr == null || now - Long.parseLong(lastUpdateStr) > TIMEOUT_MILLIS) {
+				log.warn("[{}] 위치 갱신 시간 초과.", driverLoginId);
 
-				// 로직
+				// 1. call Id 조회
+				Long callId = redisService.getCallIdByDriverId(driverLoginId);
+				String customerLoginId = callInfoService.findCustomerLoginIdById(callId);
 
-				/**
-				 * TODO : 이후 고객에게 예외응답 전송, 택시에게 예외응답 전송
-				 */
-				continue;
-			}
+				// 2. 매칭 엔티티 삭제
+				matchingService.deleteByCallId(callId);
 
-			long lastUpdateTime = Long.parseLong(lastUpdateStr);
-			if (now - lastUpdateTime > TIMEOUT_MILLIS) {
-				log.warn("[{}] 위치 미갱신 ({}ms 지남)", reservedDriver, now - lastUpdateTime);
-				/**
-				 * TODO : 배차 취소 로직 구현 콜, 매칭, 운행정보 엔티티 삭제 및 택시 상태 변경, Redis 에서 관련 데이터 제거 필요.
-				 */
-				// 로직
-				/**
-				 * TODO : 이후 고객에게 예외응답 전송, 택시에게 예외응답 전송
-				 */
+				// 3. 해당 콜 정보 레디스에서 삭제
+				redisService.deleteCallStatus(callId);  // String.format("call:%s:status", callId);
+				redisService.deleteAssignedCallOf(
+					driverLoginId); //  String.format("taxidriver:%s:call", taxiDriverLoginId);
+
+				// 4. 해당 택시기사 상태 OFF_DUTY 변경..
+				taxiDriverService.changeStatus(driverLoginId, OFF_DUTY);
+				redisService.setOffDuty(driverLoginId);
+
+				// 5. "taxidriver:location:타입:reserved" 집합에서 택시기사 정보 제거
+				TaxiType taxiType = redisService.getDriversTaxiType(driverLoginId);
+				redisService.removeFromLocation(driverLoginId, taxiType, RESERVED);
+
+
+				// 6. 고객 및 택시에게 예외 메세지 전송
+				log.info(
+					"[monitorReservedTaxiDrivers.TaxiDriverConnectionMonitor] 배차 실패. 예외 메세지 전송. 콜 ID : {}, 유저 ID : {}, 택시기사 ID : {}",
+					callId, customerLoginId, driverLoginId);
+				messagingService.sendDispatchFailMessageToUser(customerLoginId);
+				messagingService.sendDispatchFailMessageToTaxiDriver(driverLoginId);
+
 			}
 
 		}

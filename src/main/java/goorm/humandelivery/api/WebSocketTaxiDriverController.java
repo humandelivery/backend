@@ -173,6 +173,10 @@ public class WebSocketTaxiDriverController {
 		// 4. redis 에 저장된 콜 상태 변경
 		redisService.setCallWith(callId, CallStatus.DONE);
 
+		// 5. 해당 택시기사가 담당받은 콜 정보를 redis에 저장.
+		redisService.assignCallToDriver(callId, taxiDriverLoginId);
+
+
 		// 5. CallAcceptResponse 응답하기.
 		CallAcceptResponse callAcceptResponse = callInfoService.getCallAcceptResponse(callId);
 		log.info("[acceptTaxiCall.CallAcceptResponse] 배차완료.  콜 ID : {}, 고객 ID : {}, 택시기사 ID : {}",

@@ -25,4 +25,8 @@ public interface CallInfoRepository extends JpaRepository<CallInfo, Long> {
 			+ "join c.customer cs "
 			+ "where c.id = :callId")
 	Optional<CallAcceptResponse> findCallInfoAndCustomerByCallId(Long callId);
+
+
+	@Query("select cs.loginId from CallInfo c join c.customer cs where c.id = :callId")
+	Optional<String> findCustomerLoginIdByCallId(long callId);
 }

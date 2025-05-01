@@ -38,4 +38,8 @@ public class RedisKeyParser {
 	public static String getRejectCallKey(Long callId) {
 		return String.format("call:%s:rejected", callId);
 	}
+
+	public static String assignCallToDriver(String taxiDriverLoginId) {
+		return	String.format("taxidriver:%s:call", taxiDriverLoginId);
+	}
 }

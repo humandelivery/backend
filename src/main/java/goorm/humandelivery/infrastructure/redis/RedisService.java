@@ -17,6 +17,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.domain.geo.GeoLocation;
 import org.springframework.stereotype.Service;
 
+import goorm.humandelivery.common.exception.CallInfoEntityNotFoundException;
 import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
@@ -152,5 +153,30 @@ public class RedisService {
 		return driversIds.stream().filter(id -> !isDriverRejectedForCall(callId, id)).toList();
 	}
 
+	public void assignCallToDriver(Long callId, String taxiDriverLoginId) {
+		String key = RedisKeyParser.assignCallToDriver(taxiDriverLoginId);
+		redisTemplate.opsForValue().set(key, String.valueOf(callId));
+	}
 
+	public Long getCallIdByDriverId(String taxiDriverLoginId) {
+		String key = RedisKeyParser.assignCallToDriver(taxiDriverLoginId);
+		String callIdStr = redisTemplate.opsForValue().get(key);
+
+		if (callIdStr == null) {
+			log.info("[getCallIdByDriverId.RedisService] redis 에 해당 키가 존재하지 않음. key : {}", key);
+			throw new CallInfoEntityNotFoundException();
+		}
+
+		return Long.valueOf(callIdStr);
+	}
+
+	public void deleteCallStatus(Long callId) {
+		String key = RedisKeyParser.callStatus(callId);
+		redisTemplate.delete(key);
+	}
+
+	public void deleteAssignedCallOf(String driverLoginId) {
+		String key = RedisKeyParser.assignCallToDriver(driverLoginId);
+		redisTemplate.delete(key);
+	}
 }

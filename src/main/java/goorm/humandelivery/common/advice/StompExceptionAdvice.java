@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
 import goorm.humandelivery.common.exception.CallInfoEntityNotFoundException;
 import goorm.humandelivery.common.exception.CustomerNotAssignedException;
+import goorm.humandelivery.common.exception.MatchingEntityNotFoundException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.common.exception.TaxiDriverEntityNotFoundException;
 import goorm.humandelivery.domain.model.response.ErrorResponse;
@@ -58,6 +59,13 @@ public class StompExceptionAdvice {
 	public ErrorResponse handleTaxiDriverEntityNotFoundException(TaxiDriverEntityNotFoundException ex) {
 		log.error("exception: {}", ex.getClass());
 		return new ErrorResponse("TaxiDriverEntityNotFoundException", ex.getMessage());
+	}
+
+	@MessageExceptionHandler(MatchingEntityNotFoundException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleMatchingEntityNotFoundException(MatchingEntityNotFoundException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("MatchingEntityNotFoundException", ex.getMessage());
 	}
 
 }
