@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import goorm.humandelivery.domain.model.entity.CallInfo;
 import goorm.humandelivery.domain.model.entity.Customer;
 import goorm.humandelivery.domain.model.request.CallMessageRequest;
-import goorm.humandelivery.domain.repository.CallRepository;
+import goorm.humandelivery.domain.repository.CallInfoRepository;
 import goorm.humandelivery.infrastructure.messaging.KafkaMessageQueueService;
 import lombok.RequiredArgsConstructor;
 
@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WebSocketCustomerService {
 
-	private final CallRepository callRepository;
+	private final CallInfoRepository callRepository;
 	private final CustomerService customerService;
 
 	// private final BlockingMessageQueueService messageQueueService;

@@ -4,8 +4,11 @@ import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 
+import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
+import goorm.humandelivery.common.exception.CallInfoEntityNotFoundException;
 import goorm.humandelivery.common.exception.CustomerNotAssignedException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
+import goorm.humandelivery.common.exception.TaxiDriverEntityNotFoundException;
 import goorm.humandelivery.domain.model.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,6 +35,29 @@ public class StompExceptionAdvice {
 	public ErrorResponse handleCustomerNotAssignedException(CustomerNotAssignedException ex) {
 		log.error("exception: {}", ex.getClass());
 		return new ErrorResponse("CustomerNotAssignedException", ex.getMessage());
+	}
+
+
+	@MessageExceptionHandler(CallAlreadyCompletedException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleCallAlreadyCompletedException(CallAlreadyCompletedException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("CallAlreadyCompletedException", ex.getMessage());
+	}
+
+
+	@MessageExceptionHandler(CallInfoEntityNotFoundException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleCallInfoEntityNotFoundException(CallInfoEntityNotFoundException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("CallInfoEntityNotFoundException", ex.getMessage());
+	}
+
+	@MessageExceptionHandler(TaxiDriverEntityNotFoundException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleTaxiDriverEntityNotFoundException(TaxiDriverEntityNotFoundException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("TaxiDriverEntityNotFoundException", ex.getMessage());
 	}
 
 }

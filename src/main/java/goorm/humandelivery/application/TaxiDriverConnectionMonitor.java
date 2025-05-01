@@ -2,6 +2,8 @@ package goorm.humandelivery.application;
 
 import static goorm.humandelivery.domain.model.entity.TaxiDriverStatus.*;
 
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 
@@ -34,8 +36,11 @@ public class TaxiDriverConnectionMonitor {
 	// 5초에 한번씩 스케쥴링
 	@Scheduled(fixedDelay = 5000)
 	public void monitorReservedTaxiDrivers() {
-
 		long now = System.currentTimeMillis();
+
+		log.info("[monitorReservedTaxiDrivers.TaxiDriverConnectionMonitor] start monitoring at : {}",
+			Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDateTime()
+		);
 
 		// 1. 운행중인 기사목록 조회
 		Set<String> activeDrivers = redisService.getActiveDrivers();
@@ -53,6 +58,12 @@ public class TaxiDriverConnectionMonitor {
 				/**
 				 * TODO : 배차 취소 로직 구현 콜, 매칭, 운행정보 엔티티 삭제 및 택시 상태 변경, Redis 에서 관련 데이터 제거 필요.
 				 */
+
+				// 로직
+
+				/**
+				 * TODO : 이후 고객에게 예외응답 전송, 택시에게 예외응답 전송
+				 */
 				continue;
 			}
 
@@ -61,6 +72,10 @@ public class TaxiDriverConnectionMonitor {
 				log.warn("[{}] 위치 미갱신 ({}ms 지남)", reservedDriver, now - lastUpdateTime);
 				/**
 				 * TODO : 배차 취소 로직 구현 콜, 매칭, 운행정보 엔티티 삭제 및 택시 상태 변경, Redis 에서 관련 데이터 제거 필요.
+				 */
+				// 로직
+				/**
+				 * TODO : 이후 고객에게 예외응답 전송, 택시에게 예외응답 전송
 				 */
 			}
 
