@@ -34,6 +34,7 @@ public class MessagingService {
 
 		switch (status) {
 			case OFF_DUTY -> throw new OffDutyLocationUpdateException();
+
 			case AVAILABLE ->
 				redisService.setLocation(
 					RedisKeyParser.taxiDriverLocationKeyFrom(taxiType),
