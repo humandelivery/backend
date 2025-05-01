@@ -18,6 +18,7 @@ import goorm.humandelivery.domain.model.response.CreateCustomerResponse;
 import goorm.humandelivery.domain.model.response.LoginCustomerResponse;
 import goorm.humandelivery.domain.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional(readOnly = true)

@@ -19,5 +19,6 @@ public class CallMessage extends QueueMessage {
 	private Location expectedOrigin;
 	private Location expectedDestination;
 	private TaxiType taxiType;
+	private Integer retryCount;
 
 }
