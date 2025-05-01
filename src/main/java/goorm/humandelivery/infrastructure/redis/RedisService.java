@@ -1,7 +1,9 @@
 package goorm.humandelivery.infrastructure.redis;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Circle;
@@ -100,5 +102,21 @@ public class RedisService {
 
 	public void setOffDuty(String taxiDriverLoginId) {
 		redisTemplate.opsForSet().remove(RedisKeyParser.ACTIVE_TAXI_DRIVER_KEY, taxiDriverLoginId);
+	}
+
+	public Set<String> getActiveDrivers() {
+		return redisTemplate.opsForSet().members(RedisKeyParser.ACTIVE_TAXI_DRIVER_KEY);
+
+	}
+
+	public TaxiDriverStatus getDriverStatus(String taxiDriverLoginId) {
+		String key = RedisKeyParser.taxiDriverStatus(taxiDriverLoginId);
+		return 	TaxiDriverStatus.valueOf(redisTemplate.opsForValue().get(key));
+
+	}
+
+	public String getLastUpdate(String reservedDriver) {
+		String key = RedisKeyParser.taxiDriverLastUpdate(reservedDriver);
+		return redisTemplate.opsForValue().get(key);
 	}
 }
