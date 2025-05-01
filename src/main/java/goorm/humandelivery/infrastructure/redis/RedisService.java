@@ -150,6 +150,9 @@ public class RedisService {
 			.map(GeoLocation::getName)
 			.toList();
 
+		/**
+		 * 여기서 이미 해당 콜을 거절한 기사인지 체크하고, 거절하지 않은 기사들에게만 콜 요청을 보냅니다.
+		 */
 		return driversIds.stream().filter(id -> !isDriverRejectedForCall(callId, id)).toList();
 	}
 
@@ -177,6 +180,11 @@ public class RedisService {
 
 	public void deleteAssignedCallOf(String driverLoginId) {
 		String key = RedisKeyParser.assignCallToDriver(driverLoginId);
+		redisTemplate.delete(key);
+	}
+
+	public void removeRejectedDriversForCall(Long callId) {
+		String key = RedisKeyParser.getRejectCallKey(callId);
 		redisTemplate.delete(key);
 	}
 }

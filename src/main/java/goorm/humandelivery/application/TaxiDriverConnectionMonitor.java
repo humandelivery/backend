@@ -89,6 +89,9 @@ public class TaxiDriverConnectionMonitor {
 				TaxiType taxiType = redisService.getDriversTaxiType(driverLoginId);
 				redisService.removeFromLocation(driverLoginId, taxiType, RESERVED);
 
+				// 6. 해당 콜 거절 택시기사 목록 키 제거
+				redisService.removeRejectedDriversForCall(callId);
+
 
 				// 6. 고객 및 택시에게 예외 메세지 전송
 				log.info(
