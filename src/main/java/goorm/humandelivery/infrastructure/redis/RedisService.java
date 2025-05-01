@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.domain.geo.GeoLocation;
 import org.springframework.stereotype.Service;
 
+import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
@@ -89,5 +90,11 @@ public class RedisService {
 			.map(GeoResult::getContent)
 			.map(GeoLocation::getName)
 			.toList();
+	}
+
+	// 콜 생성 시 redis 에 저장
+	public void setCallWith(Long callId, CallStatus callStatus) {
+		String key = RedisKeyParser.callStatus(callId);
+		redisTemplate.opsForValue().set(key, callStatus.name(), Duration.ofMinutes(30));
 	}
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import goorm.humandelivery.common.exception.NoAvailableTaxiException;
 import goorm.humandelivery.domain.model.internal.CallMessage;
 import goorm.humandelivery.domain.model.internal.QueueMessage;
 import goorm.humandelivery.domain.repository.TaxiDriverRepository;
@@ -61,10 +62,7 @@ public class KafkaMessageQueueService implements MessageQueueService {
 			// 여겨시 택시 수가 0인경우 없다는 메세지를 고객에게 전달.
 			log.info("범위 내에 유효한 택시가 없음");
 
-			// StompExceptionAdvice에 추가
-
-
-			return;
+			throw new NoAvailableTaxiException();
 		}
 
 		// 2. 해당 택시기사들에게 메세지 전송
