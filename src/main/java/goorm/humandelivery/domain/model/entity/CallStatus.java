@@ -1,6 +1,5 @@
 package goorm.humandelivery.domain.model.entity;
 
-
 public enum CallStatus {
 	SENT("배차요청"),
 	CANCELED("취소"),

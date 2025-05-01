@@ -8,6 +8,7 @@ import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
 import goorm.humandelivery.common.exception.CallInfoEntityNotFoundException;
 import goorm.humandelivery.common.exception.CustomerNotAssignedException;
 import goorm.humandelivery.common.exception.MatchingEntityNotFoundException;
+import goorm.humandelivery.common.exception.NoAvailableTaxiException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.common.exception.TaxiDriverEntityNotFoundException;
 import goorm.humandelivery.domain.model.response.ErrorResponse;
@@ -38,7 +39,6 @@ public class StompExceptionAdvice {
 		return new ErrorResponse("CustomerNotAssignedException", ex.getMessage());
 	}
 
-
 	@MessageExceptionHandler(CallAlreadyCompletedException.class)
 	@SendToUser("/queue/errors") // /user/queue/errors
 	public ErrorResponse handleCallAlreadyCompletedException(CallAlreadyCompletedException ex) {
@@ -66,6 +66,14 @@ public class StompExceptionAdvice {
 	public ErrorResponse handleMatchingEntityNotFoundException(MatchingEntityNotFoundException ex) {
 		log.error("exception: {}", ex.getClass());
 		return new ErrorResponse("MatchingEntityNotFoundException", ex.getMessage());
+
+  }
+  
+  @MessageExceptionHandler(NoAvailableTaxiException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleNoAvailableTaxiException(NoAvailableTaxiException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("NoAvailableTaxiException", ex.getMessage());
 	}
 
 }
