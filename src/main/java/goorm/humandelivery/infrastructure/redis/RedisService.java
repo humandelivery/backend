@@ -158,6 +158,8 @@ public class RedisService {
 
 	public void assignCallToDriver(Long callId, String taxiDriverLoginId) {
 		String key = RedisKeyParser.assignCallToDriver(taxiDriverLoginId);
+
+		// taxidriver:기사아이디:call, callId
 		redisTemplate.opsForValue().set(key, String.valueOf(callId));
 	}
 

@@ -51,7 +51,7 @@ public class MessagingService {
 		String locationKey = RedisKeyParser.getTaxiDriverLocationKeyBy(status, taxiType);
 		redisService.setLocation(locationKey, taxiDriverLoginId,
 			location);
-		log.info("[MessagingService sendMessage : 위치정보 저장 ] 택시기사아이디 : {}, 레디스 키 : {} ", taxiDriverLoginId, locationKey);
+		log.info("[MessagingService sendMessage : 위치정보 저장] 택시기사아이디 : {}, 레디스 키 : {} ", taxiDriverLoginId, locationKey);
 
 
 		// Redis 에 택시별 위치정보 시간 기록 => 추후 택시기사 정상 여부 검증에 사용합니다.

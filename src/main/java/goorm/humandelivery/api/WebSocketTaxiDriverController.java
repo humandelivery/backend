@@ -141,6 +141,8 @@ public class WebSocketTaxiDriverController {
 
 		Long callId = request.getCallId();
 		String taxiDriverLoginId = principal.getName();
+
+
 		CallStatus callStatus = redisService.getCallStatus(callId);
 
 		// 이미 배차가 완료된 경우..
@@ -165,6 +167,7 @@ public class WebSocketTaxiDriverController {
 		// 2. 택시기사 상태변경
 		taxiDriverService.changeStatus(taxiDriverLoginId, TaxiDriverStatus.RESERVED);
 		redisService.setDriversStatus(taxiDriverLoginId, TaxiDriverStatus.RESERVED);
+
 
 		// 3. redis taxidriver:location:택시종류:available" set 에 저장된 해당 택시기사 아이디 삭제.
 		TaxiType taxiType = redisService.getDriversTaxiType(taxiDriverLoginId);
@@ -194,10 +197,6 @@ public class WebSocketTaxiDriverController {
 	@MessageMapping("/taxi-driver/reject-call")
 	@SendToUser("/queue/reject-call-result")
 	public CallRejectResponse rejectTaxiCall(CallRejectRequest request, Principal principal) {
-
-		/**
-		 * TODO : 콜 요청 거절.... 한번 거절한 콜은 다시 요청 안하게 하려면? 해당 콜에 대한 거절 기록이 있어야함. 콜 별로 거절한 택시기사 정보를 기록.
-		 */
 
 		// 해당 콜을 거절한 택시기사 집합에 추가
 		redisService.addRejectedDriverToCall(request.getCallId(), principal.getName());

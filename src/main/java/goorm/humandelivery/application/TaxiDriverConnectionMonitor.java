@@ -92,8 +92,7 @@ public class TaxiDriverConnectionMonitor {
 				// 6. 해당 콜 거절 택시기사 목록 키 제거
 				redisService.removeRejectedDriversForCall(callId);
 
-
-				// 6. 고객 및 택시에게 예외 메세지 전송
+				// 7. 고객 및 택시에게 예외 메세지 전송
 				log.info(
 					"[monitorReservedTaxiDrivers.TaxiDriverConnectionMonitor] 배차 실패. 예외 메세지 전송. 콜 ID : {}, 유저 ID : {}, 택시기사 ID : {}",
 					callId, customerLoginId, driverLoginId);
