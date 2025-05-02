@@ -18,6 +18,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.domain.geo.GeoLocation;
 import org.springframework.stereotype.Service;
 
+import goorm.humandelivery.common.exception.LocationNotInRedisException;
 import goorm.humandelivery.common.exception.RedisKeyNotFoundException;
 import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.entity.Location;
@@ -56,6 +57,20 @@ public class RedisService {
 
 	public void setLocation(String key, String loginId, Location location) {
 		redisTemplate.opsForGeo().add(key, new Point(location.getLongitude(), location.getLatitude()), loginId);
+	}
+
+	public Location getLocation(String key, String loginId) {
+		Point point = redisTemplate.opsForGeo()
+			.position(key, loginId)
+			.stream()
+			.findFirst()
+			.orElse(null);
+
+		if (point == null) {
+			throw new LocationNotInRedisException(key, loginId);
+		}
+
+		return new Location(point.getY(), point.getX()); // 위도, 경도 순서
 	}
 
 	public void setCallWith(Long callId, CallStatus callStatus) {
@@ -204,7 +219,6 @@ public class RedisService {
 		log.info("[updateStatus : redis 택시기사 종류 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId, changedStatus);
 		setDriversTaxiType(taxiDriverLoginId, taxiType);
 
-
 		// [상태별 처리]
 		if (changedStatus == TaxiDriverStatus.OFF_DUTY) {
 			// 운행 종료. active 택시기사 목록에서 제외
@@ -311,6 +325,16 @@ public class RedisService {
 		}
 
 		log.info("[deleteCallBy.RedisService 호출] 해당 기사가 가진 콜 정보가 없습니다. taxiDriverId : {}", taxiDriverLoginId);
+
+	}
+
+	public Location getDriverLocation(String driverLoginId) {
+
+		TaxiDriverStatus taxiDriverStatus = getDriverStatus(driverLoginId);
+		TaxiType taxiType = getDriversTaxiType(driverLoginId);
+		String key = RedisKeyParser.getTaxiDriverLocationKeyBy(taxiDriverStatus, taxiType);
+
+		return getLocation(key, driverLoginId);
 
 	}
 }

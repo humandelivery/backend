@@ -6,8 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import goorm.humandelivery.application.CallInfoService;
+import goorm.humandelivery.application.DrivingInfoService;
 import goorm.humandelivery.application.MatchingService;
 import goorm.humandelivery.application.TaxiDriverService;
 import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
@@ -39,15 +41,18 @@ public class WebSocketTaxiDriverController {
 	private final MessagingService messagingService;
 	private final MatchingService matchingService;
 	private final CallInfoService callInfoService;
+	private final DrivingInfoService drivingInfoService;
 
 	@Autowired
 	public WebSocketTaxiDriverController(RedisService redisService, TaxiDriverService taxiDriverService,
-		MessagingService messagingService, MatchingService matchingService, CallInfoService callInfoService) {
+		MessagingService messagingService, MatchingService matchingService, CallInfoService callInfoService,
+		DrivingInfoService drivingInfoService) {
 		this.redisService = redisService;
 		this.taxiDriverService = taxiDriverService;
 		this.messagingService = messagingService;
 		this.matchingService = matchingService;
 		this.callInfoService = callInfoService;
+		this.drivingInfoService = drivingInfoService;
 	}
 
 	/**
@@ -58,7 +63,7 @@ public class WebSocketTaxiDriverController {
 	 */
 	@MessageMapping("/update-status")
 	@SendToUser("/queue/taxi-driver-status")
-	public UpdateTaxiDriverStatusResponse updateStatus(@Valid UpdateTaxiDriverStatusRequest request,
+	public UpdateTaxiDriverStatusResponse updateStatus(@Valid @RequestBody UpdateTaxiDriverStatusRequest request,
 		Principal principal) {
 
 		String taxiDriverLoginId = principal.getName();
@@ -83,7 +88,7 @@ public class WebSocketTaxiDriverController {
 	 * @return UpdateLocationResponse
 	 */
 	@MessageMapping("/update-location")
-	public void updateLocation(@Valid UpdateLocationRequest request, Principal principal) {
+	public void updateLocation(@Valid @RequestBody UpdateLocationRequest request, Principal principal) {
 		String taxiDriverLoginId = principal.getName();
 		String customerLoginId = request.getCustomerLoginId();
 		Location location = request.getLocation();
@@ -113,7 +118,7 @@ public class WebSocketTaxiDriverController {
 	 */
 	@MessageMapping("/accept-call")
 	@SendToUser("/queue/accept-call-result")
-	public CallAcceptResponse acceptTaxiCall(CallAcceptRequest request, Principal principal) {
+	public CallAcceptResponse acceptTaxiCall(@Valid @RequestBody CallAcceptRequest request, Principal principal) {
 
 		Long callId = request.getCallId();
 		String taxiDriverLoginId = principal.getName();
@@ -152,6 +157,9 @@ public class WebSocketTaxiDriverController {
 		log.info("[acceptTaxiCall.WebSocketTaxiDriverController] 배차완료.  콜 ID : {}, 고객 ID : {}, 택시기사 ID : {}",
 			callId, callAcceptResponse.getCustomerLoginId(), taxiDriverId);
 
+		// 고객에게 배차되엇다고 상태 전달하기
+		messagingService.notifyDispatchSuccessToCustomer(callAcceptResponse.getCustomerLoginId(), taxiDriverLoginId);
+
 		return callAcceptResponse;
 	}
 
@@ -163,12 +171,41 @@ public class WebSocketTaxiDriverController {
 	 */
 	@MessageMapping("/reject-call")
 	@SendToUser("/queue/reject-call-result")
-	public CallRejectResponse rejectTaxiCall(CallRejectRequest request, Principal principal) {
+	public CallRejectResponse rejectTaxiCall(@Valid @RequestBody CallRejectRequest request, Principal principal) {
 		log.info("[rejectTaxiCall.WebSocketTaxiDriverController] 콜 거절.  콜 ID : {}, 택시기사 ID : {}",
 			request.getCallId(), principal.getName());
 
 		// 해당 콜을 거절한 택시기사 집합에 추가
 		redisService.addRejectedDriverToCall(request.getCallId(), principal.getName());
 		return new CallRejectResponse(request.getCallId());
+	}
+
+	/**
+	 * 승객 승차 완료 요청 처리
+	 */
+	@MessageMapping("/ride-start")
+	@SendToUser("/queue/ride-status")
+	public void startRideWithCustomer(@Valid @RequestBody CreateDrivingInfoRequest request, Principal principal) {
+
+		/**
+		 * 손님 타고, 운행정보 엔티티 생성
+		 */
+
+		// 매칭 조회해야함.
+		Long matchingId = matchingService.findMatchingIdByCallId(request.getCallId());
+
+		// 운행정보 생성
+		Location taxiDriverLocation = redisService.getDriverLocation(principal.getName());
+
+
+		// 1. 손님 탓으니까, 운행 시작
+		// 운행정보 엔티티 생성
+
+		// 택시 상태 변경
+		// 레디스 상태 변경
+
+		// 손님에게 운행 시작 메세지 전달
+		// 택시에게 응답 반
+
 	}
 }

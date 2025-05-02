@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
 import goorm.humandelivery.common.exception.CallInfoEntityNotFoundException;
 import goorm.humandelivery.common.exception.CustomerNotAssignedException;
+import goorm.humandelivery.common.exception.LocationNotInRedisException;
 import goorm.humandelivery.common.exception.MatchingEntityNotFoundException;
 import goorm.humandelivery.common.exception.NoAvailableTaxiException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
@@ -82,6 +83,14 @@ public class StompExceptionAdvice {
 	public ErrorResponse handleRedisKeyNotFoundException(RedisKeyNotFoundException ex) {
 		log.error("exception: {}", ex.getClass());
 		return new ErrorResponse("RedisKeyNotFoundException", ex.getMessage());
+	}
+
+
+	@MessageExceptionHandler(LocationNotInRedisException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleLocationNotInRedisException(LocationNotInRedisException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("LocationNotInRedisException", ex.getMessage());
 	}
 
 }
