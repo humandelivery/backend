@@ -11,4 +11,7 @@ public interface MatchingRepository extends JpaRepository<Matching, Long> {
 
 	@Query("select m from Matching m where m.callInfo.id = :callId")
 	Optional<Matching> findMatchingByCallInfoId(Long callId);
+
+	@Query("select m.id from Matching m where m.callInfo.id = :callId")
+	Optional<Long> findMatchingIdByCallInfoId(Long callId);
 }
