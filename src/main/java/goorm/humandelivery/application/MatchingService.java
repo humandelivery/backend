@@ -55,4 +55,12 @@ public class MatchingService {
 		);
 		matchingRepository.delete(matching);
 	}
+
+	public Long findMatchingIdByCallId(Long callId) {
+		return matchingRepository.findMatchingIdByCallInfoId(callId).orElseThrow(
+			MatchingEntityNotFoundException::new
+		);
+
+	}
+
 }

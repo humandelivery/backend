@@ -111,7 +111,7 @@ public class WebSocketTaxiDriverController {
 	 * @param request
 	 * @param principal
 	 */
-	@MessageMapping("/taxi-driver/accept-call")
+	@MessageMapping("/accept-call")
 	@SendToUser("/queue/accept-call-result")
 	public CallAcceptResponse acceptTaxiCall(CallAcceptRequest request, Principal principal) {
 
@@ -144,11 +144,12 @@ public class WebSocketTaxiDriverController {
 			TaxiDriverStatus.RESERVED);
 
 		// 상태 변경에 따른 redis 처리
+		redisService.assignCallToDriver(callId, taxiDriverLoginId);
 		redisService.handleTaxiDriverStatusInRedis(taxiDriverLoginId, taxiDriverStatus, taxiType);
 
 		// CallAcceptResponse 응답하기.
 		CallAcceptResponse callAcceptResponse = callInfoService.getCallAcceptResponse(callId);
-		log.info("[acceptTaxiCall.CallAcceptResponse] 배차완료.  콜 ID : {}, 고객 ID : {}, 택시기사 ID : {}",
+		log.info("[acceptTaxiCall.WebSocketTaxiDriverController] 배차완료.  콜 ID : {}, 고객 ID : {}, 택시기사 ID : {}",
 			callId, callAcceptResponse.getCustomerLoginId(), taxiDriverId);
 
 		return callAcceptResponse;
@@ -160,9 +161,11 @@ public class WebSocketTaxiDriverController {
 	 * @param principal
 	 * @return
 	 */
-	@MessageMapping("/taxi-driver/reject-call")
+	@MessageMapping("/reject-call")
 	@SendToUser("/queue/reject-call-result")
 	public CallRejectResponse rejectTaxiCall(CallRejectRequest request, Principal principal) {
+		log.info("[rejectTaxiCall.WebSocketTaxiDriverController] 콜 거절.  콜 ID : {}, 택시기사 ID : {}",
+			request.getCallId(), principal.getName());
 
 		// 해당 콜을 거절한 택시기사 집합에 추가
 		redisService.addRejectedDriverToCall(request.getCallId(), principal.getName());
