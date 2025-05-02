@@ -12,7 +12,6 @@ import goorm.humandelivery.application.MatchingService;
 import goorm.humandelivery.application.TaxiDriverService;
 import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
-import goorm.humandelivery.domain.model.entity.CallInfo;
 import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
@@ -25,7 +24,6 @@ import goorm.humandelivery.domain.model.request.UpdateLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusResponse;
 import goorm.humandelivery.domain.model.response.CallAcceptResponse;
-import goorm.humandelivery.domain.repository.CallInfoRepository;
 import goorm.humandelivery.infrastructure.messaging.MessagingService;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.validation.Valid;
@@ -74,30 +72,8 @@ public class WebSocketTaxiDriverController {
 		// 2. 택시타입 조회
 		TaxiType taxiType = taxiDriverService.findTaxiDriverTaxiType(taxiDriverLoginId).getTaxiType();
 
-		// OFF_DUTY 면 Redis 에서 다 제거.
-		if (changedStatus == TaxiDriverStatus.OFF_DUTY) {
-			// 운행 종료. active 택시기사 목록에서 제외
-			log.info("[updateStatus : 택시기사 비활성화. active 목록에서 제외] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId,
-				statusTobe);
-			redisService.setOffDuty(taxiDriverLoginId);
-			return new UpdateTaxiDriverStatusResponse(changedStatus);
-		}
-
-		// 3. Redis 에 택시기사 상태 저장. TTL : 1시간
-		log.info("[updateStatus : redis 택시기사 상태 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId, statusTobe);
-		redisService.setDriversStatus(taxiDriverLoginId, changedStatus);
-
-		// 4. Redis 에 택시기사의 택시 종류 저장. TTL : 1일
-		log.info("[updateStatus : redis 택시기사 종류 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId, statusTobe);
-		redisService.setDriversTaxiType(taxiDriverLoginId, taxiType);
-
-		log.info("[updateStatus : redis 택시기사 active set 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId,
-			statusTobe);
-
-		// active driver set 에 없으면 추가
-		redisService.setActive(taxiDriverLoginId);
-
-		return new UpdateTaxiDriverStatusResponse(changedStatus);
+		// 3. redis 에 상태 업데이트
+		return redisService.handleTaxiDriverStatusInRedis(taxiDriverLoginId, changedStatus, taxiType);
 	}
 
 	/**
@@ -142,7 +118,6 @@ public class WebSocketTaxiDriverController {
 		Long callId = request.getCallId();
 		String taxiDriverLoginId = principal.getName();
 
-
 		CallStatus callStatus = redisService.getCallStatus(callId);
 
 		// 이미 배차가 완료된 경우..
@@ -160,27 +135,18 @@ public class WebSocketTaxiDriverController {
 			throw new CallAlreadyCompletedException();
 		}
 
-		// 1. 엔티티 생성
+		// 엔티티 생성
 		Long taxiDriverId = taxiDriverService.findIdByLoginId(taxiDriverLoginId);
 		matchingService.create(new CreateMatchingRequest(callId, taxiDriverId));
 
-		// 2. 택시기사 상태변경
-		taxiDriverService.changeStatus(taxiDriverLoginId, TaxiDriverStatus.RESERVED);
-		redisService.setDriversStatus(taxiDriverLoginId, TaxiDriverStatus.RESERVED);
-
-
-		// 3. redis taxidriver:location:택시종류:available" set 에 저장된 해당 택시기사 아이디 삭제.
 		TaxiType taxiType = redisService.getDriversTaxiType(taxiDriverLoginId);
-		redisService.removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.AVAILABLE);
+		TaxiDriverStatus taxiDriverStatus = taxiDriverService.changeStatus(taxiDriverLoginId,
+			TaxiDriverStatus.RESERVED);
 
-		// 4. redis 에 저장된 콜 상태 변경
-		redisService.setCallWith(callId, CallStatus.DONE);
+		// 상태 변경에 따른 redis 처리
+		redisService.handleTaxiDriverStatusInRedis(taxiDriverLoginId, taxiDriverStatus, taxiType);
 
-		// 5. 해당 택시기사가 담당받은 콜 정보를 redis에 저장.
-		redisService.assignCallToDriver(callId, taxiDriverLoginId);
-
-
-		// 5. CallAcceptResponse 응답하기.
+		// CallAcceptResponse 응답하기.
 		CallAcceptResponse callAcceptResponse = callInfoService.getCallAcceptResponse(callId);
 		log.info("[acceptTaxiCall.CallAcceptResponse] 배차완료.  콜 ID : {}, 고객 ID : {}, 택시기사 ID : {}",
 			callId, callAcceptResponse.getCustomerLoginId(), taxiDriverId);

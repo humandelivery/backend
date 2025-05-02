@@ -10,6 +10,7 @@ import goorm.humandelivery.common.exception.CustomerNotAssignedException;
 import goorm.humandelivery.common.exception.MatchingEntityNotFoundException;
 import goorm.humandelivery.common.exception.NoAvailableTaxiException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
+import goorm.humandelivery.common.exception.RedisKeyNotFoundException;
 import goorm.humandelivery.common.exception.TaxiDriverEntityNotFoundException;
 import goorm.humandelivery.domain.model.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -74,6 +75,13 @@ public class StompExceptionAdvice {
 	public ErrorResponse handleNoAvailableTaxiException(NoAvailableTaxiException ex) {
 		log.error("exception: {}", ex.getClass());
 		return new ErrorResponse("NoAvailableTaxiException", ex.getMessage());
+	}
+
+	@MessageExceptionHandler(RedisKeyNotFoundException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleRedisKeyNotFoundException(RedisKeyNotFoundException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("RedisKeyNotFoundException", ex.getMessage());
 	}
 
 }
