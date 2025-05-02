@@ -23,9 +23,6 @@ public class RedisKeyParser {
 		return String.format("taxidriver:%s:lastupdate", taxiDriverLoginId);
 	}
 
-	public static String taxiDriverLocationKeyFrom(TaxiType taxiType) {
-		return TAXI_DRIVER_LOCATION_KEY + ":" + taxiType.name().toLowerCase();
-	}
 
 	public static String getTaxiDriverLocationKeyBy(TaxiDriverStatus taxiDriverStatus, TaxiType taxiType) {
 		return TAXI_DRIVER_LOCATION_KEY + ":" +
@@ -36,5 +33,13 @@ public class RedisKeyParser {
 
 	public static String callStatus(Long callId) {
 		return String.format("call:%s:status", callId);
+	}
+
+	public static String getRejectCallKey(Long callId) {
+		return String.format("call:%s:rejected", callId);
+	}
+
+	public static String assignCallToDriver(String taxiDriverLoginId) {
+		return	String.format("taxidriver:%s:call", taxiDriverLoginId);
 	}
 }

@@ -1,5 +1,7 @@
 package goorm.humandelivery.infrastructure.messaging;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -10,13 +12,20 @@ import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.request.LocationResponse;
+import goorm.humandelivery.domain.model.response.ErrorResponse;
 import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
 import goorm.humandelivery.infrastructure.redis.RedisService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class MessagingService {
 
 	private static final String LOCATION_TO_USER = "/queue/update-taxidriver-location";
+	private static final String DISPATCH_FAIL_MESSAGE_TO_USER = "/queue/dispatch-error";
+	private static final String DISPATCH_FAIL_MESSAGE_TO_TAXI_DRIVER = "/queue/dispatch-canceled";
+
+
 	private final SimpMessagingTemplate messagingTemplate;
 	private final RedisService redisService;
 
@@ -29,27 +38,56 @@ public class MessagingService {
 	public void sendMessage(String taxiDriverLoginId, TaxiDriverStatus status, TaxiType taxiType,
 		String customerLoginId, Location location
 	) {
+		log.info("[MessagingService sendMessage : 호출] 택시기사아이디 : {}, 택시기사상태 : {}, 택시타입 : {},  고객아이디 : {} ",
+			taxiDriverLoginId, status, taxiType, customerLoginId);
 
 		LocationResponse response = new LocationResponse(location);
 
-		switch (status) {
-			case OFF_DUTY -> throw new OffDutyLocationUpdateException();
-
-			case AVAILABLE ->
-				redisService.setLocation(
-					RedisKeyParser.taxiDriverLocationKeyFrom(taxiType),
-					taxiDriverLoginId,
-					location);
-
-			case RESERVED, ON_DRIVING -> {
-				if (customerLoginId == null) {
-					throw new CustomerNotAssignedException();
-				}
-				messagingTemplate.convertAndSendToUser(
-					customerLoginId,
-					LOCATION_TO_USER,
-					response);
-			}
+		if (status == TaxiDriverStatus.OFF_DUTY) {
+			throw new OffDutyLocationUpdateException();
 		}
+
+		// 상태를 기반으로 위치정보를 저장합니다.
+		String locationKey = RedisKeyParser.getTaxiDriverLocationKeyBy(status, taxiType);
+		redisService.setLocation(locationKey, taxiDriverLoginId,
+			location);
+		log.info("[MessagingService sendMessage : 위치정보 저장] 택시기사아이디 : {}, 레디스 키 : {} ", taxiDriverLoginId, locationKey);
+
+
+		// Redis 에 택시별 위치정보 시간 기록 => 추후 택시기사 정상 여부 검증에 사용합니다.
+		String currentTime = String.valueOf(System.currentTimeMillis());
+		String updateTimeKey = RedisKeyParser.taxiDriverLastUpdate(taxiDriverLoginId);
+		redisService.setValueWithTTL(updateTimeKey, currentTime, Duration.ofMinutes(5));
+		log.info("[MessagingService sendMessage : 위치정보 갱신시간 저장] 택시기사아이디 : {}, 레디스 키 : {} ", taxiDriverLoginId, updateTimeKey);
+
+
+		// 예약중이거나, 운행중인 경우 유저에게도 직접 전달합니다.
+		if (status == TaxiDriverStatus.RESERVED || status == TaxiDriverStatus.ON_DRIVING) {
+			log.info("[MessagingService sendMessage => 유저에게 위치 전송] 택시기사아이디 : {}, 택시기사상태 : {}, 택시타입 : {},  고객아이디 : {} ",
+				taxiDriverLoginId, status, taxiType, customerLoginId);
+
+			if (customerLoginId == null) {
+				throw new CustomerNotAssignedException();
+			}
+			messagingTemplate.convertAndSendToUser(customerLoginId, LOCATION_TO_USER, response);
+		}
+
+	}
+
+	public void sendDispatchFailMessageToUser(String customerLoginId) {
+		messagingTemplate.convertAndSendToUser(
+			customerLoginId,
+			DISPATCH_FAIL_MESSAGE_TO_USER,
+			new ErrorResponse("배차실패", "택시와 연결이 끊어졌습니다. 다시 배차를 시도합니다.")
+		);
+
+	}
+
+	public void sendDispatchFailMessageToTaxiDriver(String driverLoginId) {
+		messagingTemplate.convertAndSendToUser(
+			driverLoginId,
+			DISPATCH_FAIL_MESSAGE_TO_TAXI_DRIVER,
+			new ErrorResponse("배차취소", "위치 미전송으로 인해 배차가 취소되었습니다.")
+		);
 	}
 }

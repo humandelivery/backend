@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import goorm.humandelivery.common.exception.IncorrectPasswordException;
+import goorm.humandelivery.common.exception.TaxiDriverEntityNotFoundException;
 import goorm.humandelivery.domain.model.entity.FuelType;
 import goorm.humandelivery.domain.model.entity.Taxi;
 import goorm.humandelivery.domain.model.entity.TaxiDriver;
@@ -22,7 +23,6 @@ import goorm.humandelivery.domain.repository.TaxiRepository;
 import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.persistence.EntityExistsException;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -56,11 +56,10 @@ public class TaxiDriverService {
 		return TaxiDriverResponse.from(savedTaxiDriver);
 	}
 
-
 	public void validate(LoginTaxiDriverRequest loginTaxiDriverRequest) {
 
 		TaxiDriver taxiDriver = taxiDriverRepository.findByLoginId(loginTaxiDriverRequest.getLoginId())
-			.orElseThrow(() -> new EntityNotFoundException("아이디에 해당하는 택시기사가 존재하지 않습니다."));
+			.orElseThrow(TaxiDriverEntityNotFoundException::new);
 
 		// 패스워드 검증
 		boolean isSamePassword = taxiDriver.isSamePassword(loginTaxiDriverRequest.getPassword(), bCryptPasswordEncoder);
@@ -107,17 +106,16 @@ public class TaxiDriverService {
 	}
 
 	@Transactional
-	public TaxiDriverStatus changeStatus(String loginId, String status) {
+	public TaxiDriverStatus changeStatus(String loginId, TaxiDriverStatus status) {
 		TaxiDriver taxiDriver = taxiDriverRepository.findByLoginId(loginId)
-			.orElseThrow(() -> new EntityNotFoundException("아이디에 해당하는 택시기사가 존재하지 않습니다."));
+			.orElseThrow(TaxiDriverEntityNotFoundException::new);
 
-		return taxiDriver.changeStatus(TaxiDriverStatus.valueOf(status));
+		return taxiDriver.changeStatus(status);
 	}
-
 
 	public TaxiTypeResponse findTaxiDriverTaxiType(String loginId) {
 		return taxiDriverRepository.findTaxiDriversTaxiTypeByLoginId(loginId)
-			.orElseThrow(() -> new EntityNotFoundException("아이디에 해당하는 택시기사가 존재하지 않습니다."));
+			.orElseThrow(TaxiDriverEntityNotFoundException::new);
 	}
 
 	public TaxiDriverStatus getCurrentTaxiDriverStatus(String taxiDriverLoginId) {
@@ -133,7 +131,7 @@ public class TaxiDriverService {
 
 		// 2.없으면 DB 에서 조회.
 		TaxiDriverStatus dbStatus = taxiDriverRepository.findByLoginId(taxiDriverLoginId)
-			.orElseThrow(() -> new EntityNotFoundException("아이디에 해당하는 택시기사가 존재하지 않습니다."))
+			.orElseThrow(TaxiDriverEntityNotFoundException::new)
 			.getStatus();
 
 		// 3.이후 Redis 에 캐싱
@@ -154,7 +152,7 @@ public class TaxiDriverService {
 
 		// 2. 없으면 DB 에서 조회
 		TaxiTypeResponse taxiTypeResponse = taxiDriverRepository.findTaxiDriversTaxiTypeByLoginId(taxiDriverLoginId)
-			.orElseThrow(() -> new EntityNotFoundException("아이디에 해당하는 택시기사가 존재하지 않습니다."));
+			.orElseThrow(TaxiDriverEntityNotFoundException::new);
 
 		TaxiType taxiType = taxiTypeResponse.getTaxiType();
 
@@ -163,5 +161,10 @@ public class TaxiDriverService {
 
 		return taxiType;
 
+	}
+
+	public Long findIdByLoginId(String taxiDriverLoginId) {
+		return taxiDriverRepository.findIdByLoginId(taxiDriverLoginId)
+			.orElseThrow(TaxiDriverEntityNotFoundException::new);
 	}
 }
