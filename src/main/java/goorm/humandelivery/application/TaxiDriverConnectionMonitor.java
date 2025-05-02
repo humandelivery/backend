@@ -5,6 +5,7 @@ import static goorm.humandelivery.domain.model.entity.TaxiDriverStatus.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,10 +72,26 @@ public class TaxiDriverConnectionMonitor {
 				log.warn("[{}] 위치 갱신 시간 초과.", driverLoginId);
 
 				// 1. call Id 조회
-				Long callId = redisService.getCallIdByDriverId(driverLoginId);
+				Optional<String> callIdOptional = redisService.getCallIdByDriverId(driverLoginId);
+
+				if (callIdOptional.isEmpty()) {
+					// 해당 택시기사 상태 OFF_DUTY 로 DB 에서 변경..
+					TaxiType taxiType = redisService.getDriversTaxiType(driverLoginId);
+
+					// 택시기사 상태 변경에 따른 Redis 내부 처리 로직 수행
+					TaxiDriverStatus taxiDriverStatus = taxiDriverService.changeStatus(driverLoginId, OFF_DUTY);
+					redisService.handleTaxiDriverStatusInRedis(driverLoginId, taxiDriverStatus, taxiType);
+
+					log.info(
+						"[monitorReservedTaxiDrivers.TaxiDriverConnectionMonitor] 배차 실패. 택시기사 ID : {}", driverLoginId);
+					continue;
+				}
+
+
+				Long callId = Long.valueOf(callIdOptional.get());
 				String customerLoginId = callInfoService.findCustomerLoginIdById(callId);
 
-				// 2. 매칭 엔티티 삭제
+				// 매칭 엔티티 삭제
 				matchingService.deleteByCallId(callId);
 
 				// 3. 해당 택시기사 상태 OFF_DUTY 로 DB 에서 변경..
