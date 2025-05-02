@@ -18,10 +18,12 @@ import org.springframework.data.redis.domain.geo.GeoLocation;
 import org.springframework.stereotype.Service;
 
 import goorm.humandelivery.common.exception.CallInfoEntityNotFoundException;
+import goorm.humandelivery.common.exception.RedisKeyNotFoundException;
 import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
+import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusResponse;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -101,7 +103,14 @@ public class RedisService {
 
 	public TaxiType getDriversTaxiType(String taxiDriverLoginId) {
 		String taxiTypeKey = RedisKeyParser.taxiDriversTaxiType(taxiDriverLoginId);
-		return TaxiType.valueOf(redisTemplate.opsForValue().get(taxiTypeKey));
+
+		TaxiType taxiType = TaxiType.valueOf(redisTemplate.opsForValue().get(taxiTypeKey));
+
+		if (taxiType == null) {
+			throw new RedisKeyNotFoundException(taxiTypeKey);
+		}
+
+		return taxiType;
 	}
 
 	public boolean tryAcceptCall(String callId, String taxiDriverLoginId) {
@@ -188,5 +197,109 @@ public class RedisService {
 	public void removeRejectedDriversForCall(Long callId) {
 		String key = RedisKeyParser.getRejectCallKey(callId);
 		redisTemplate.delete(key);
+	}
+
+	public UpdateTaxiDriverStatusResponse handleTaxiDriverStatusInRedis(String taxiDriverLoginId, TaxiDriverStatus changedStatus, TaxiType taxiType) {
+
+		// [공통]
+		// Redis 에 택시기사 상태 저장. TTL : 1시간
+		log.info("[updateStatus : redis 택시기사 상태 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId, changedStatus);
+		setDriversStatus(taxiDriverLoginId, changedStatus);
+
+		// Redis 에 택시기사의 택시 종류 저장. TTL : 1일
+		log.info("[updateStatus : redis 택시기사 종류 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId, changedStatus);
+		setDriversTaxiType(taxiDriverLoginId, taxiType);
+
+		Long callId = getCallIdByDriverId(taxiDriverLoginId);
+
+
+		// [상태별 처리]
+		if (changedStatus == TaxiDriverStatus.OFF_DUTY) {
+			// 운행 종료. active 택시기사 목록에서 제외
+			log.info("[updateStatus : 택시기사 비활성화. active 목록에서 제외] taxiDriverId : {}, 상태 : {}", taxiDriverLoginId,	changedStatus);
+			setOffDuty(taxiDriverLoginId);
+
+			// 해당 기사의 위치정보 삭제
+			deleteAllLocationDataInRedis(taxiDriverLoginId, taxiType);
+
+			// 해당 기사가 가지고 있던 콜 삭제
+			deleteCallBy(taxiDriverLoginId);
+
+			// 콜에 대한 거부 택시 기사목록 삭제
+			removeRejectedDriversForCall(callId);
+
+		}
+
+
+		if (changedStatus == TaxiDriverStatus.AVAILABLE) {
+			// 해당 기사가 가지고 있던 콜 삭제
+			deleteCallBy(taxiDriverLoginId);
+
+			// 위치정보도 삭제
+			removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.RESERVED);
+			removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.ON_DRIVING);
+
+			// 콜에 대한 거부 택시 기사목록 삭제
+			removeRejectedDriversForCall(callId);
+
+			log.info("[updateStatus : redis 택시기사 active set 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId,
+				changedStatus);
+
+			// active driver set 에 없으면 추가
+			setActive(taxiDriverLoginId);
+		}
+
+		if (changedStatus == TaxiDriverStatus.RESERVED) {
+
+			// 위치정보 삭제
+			removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.AVAILABLE);
+			removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.ON_DRIVING);
+
+			// redis 에 저장된 콜 상태 변경  SENT -> DONE
+			setCallWith(callId, CallStatus.DONE);
+
+			// 해당 택시기사가 담당받은 콜 정보를 redis 에 저장.
+			assignCallToDriver(callId, taxiDriverLoginId);
+
+			// 콜에 대한 거부 택시 기사목록 삭제
+			removeRejectedDriversForCall(callId);
+
+			log.info("[updateStatus : redis 택시기사 active set 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId,
+				changedStatus);
+
+			// active driver set 에 없으면 추가
+			setActive(taxiDriverLoginId);
+		}
+
+		if (changedStatus == TaxiDriverStatus.ON_DRIVING) {
+
+			// 위치정보 삭제
+			removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.AVAILABLE);
+			removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.RESERVED);
+
+			// 콜에 대한 거부 택시 기사목록 삭제
+			removeRejectedDriversForCall(callId);
+
+			log.info("[updateStatus : redis 택시기사 active set 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId,
+				changedStatus);
+
+			// active driver set 에 없으면 추가
+			setActive(taxiDriverLoginId);
+		}
+
+		return new UpdateTaxiDriverStatusResponse(changedStatus);
+
+	}
+
+	private void deleteAllLocationDataInRedis(String taxiDriverLoginId, TaxiType taxiType) {
+		removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.AVAILABLE);
+		removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.RESERVED);
+		removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.ON_DRIVING);
+	}
+
+	public void deleteCallBy(String taxiDriverLoginId) {
+		Long callId = getCallIdByDriverId(taxiDriverLoginId);
+		deleteCallStatus(callId); // 콜 상태 삭제
+		deleteAssignedCallOf(taxiDriverLoginId); // 해당 기사가 담당했던 콜 삭제.
 	}
 }

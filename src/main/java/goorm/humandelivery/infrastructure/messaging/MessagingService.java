@@ -48,6 +48,7 @@ public class MessagingService {
 		}
 
 		// 상태를 기반으로 위치정보를 저장합니다.
+		// "taxidriver:location:normal:available"   5) "taxidriver:location:venti:ondriving"
 		String locationKey = RedisKeyParser.getTaxiDriverLocationKeyBy(status, taxiType);
 		redisService.setLocation(locationKey, taxiDriverLoginId,
 			location);
@@ -56,6 +57,8 @@ public class MessagingService {
 
 		// Redis 에 택시별 위치정보 시간 기록 => 추후 택시기사 정상 여부 검증에 사용합니다.
 		String currentTime = String.valueOf(System.currentTimeMillis());
+
+		//  String.format("taxidriver:%s:lastupdate", taxiDriverLoginId);
 		String updateTimeKey = RedisKeyParser.taxiDriverLastUpdate(taxiDriverLoginId);
 		redisService.setValueWithTTL(updateTimeKey, currentTime, Duration.ofMinutes(5));
 		log.info("[MessagingService sendMessage : 위치정보 갱신시간 저장] 택시기사아이디 : {}, 레디스 키 : {} ", taxiDriverLoginId, updateTimeKey);

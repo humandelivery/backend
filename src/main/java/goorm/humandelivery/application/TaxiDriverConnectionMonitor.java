@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.infrastructure.messaging.MessagingService;
 import goorm.humandelivery.infrastructure.redis.RedisService;
@@ -76,23 +77,14 @@ public class TaxiDriverConnectionMonitor {
 				// 2. 매칭 엔티티 삭제
 				matchingService.deleteByCallId(callId);
 
-				// 3. 해당 콜 정보 레디스에서 삭제
-				redisService.deleteCallStatus(callId);  // String.format("call:%s:status", callId);
-				redisService.deleteAssignedCallOf(
-					driverLoginId); //  String.format("taxidriver:%s:call", taxiDriverLoginId);
-
-				// 4. 해당 택시기사 상태 OFF_DUTY 변경..
-				taxiDriverService.changeStatus(driverLoginId, OFF_DUTY);
-				redisService.setOffDuty(driverLoginId);
-
-				// 5. "taxidriver:location:타입:reserved" 집합에서 택시기사 정보 제거
+				// 3. 해당 택시기사 상태 OFF_DUTY 로 DB 에서 변경..
 				TaxiType taxiType = redisService.getDriversTaxiType(driverLoginId);
-				redisService.removeFromLocation(driverLoginId, taxiType, RESERVED);
 
-				// 6. 해당 콜 거절 택시기사 목록 키 제거
-				redisService.removeRejectedDriversForCall(callId);
+				// 4. 택시기사 상태 변경에 따른 Redis 내부 처리 로직 수행
+				TaxiDriverStatus taxiDriverStatus = taxiDriverService.changeStatus(driverLoginId, OFF_DUTY);
+				redisService.handleTaxiDriverStatusInRedis(driverLoginId, taxiDriverStatus, taxiType);
 
-				// 7. 고객 및 택시에게 예외 메세지 전송
+				// 5. 고객 및 택시에게 예외 메세지 전송
 				log.info(
 					"[monitorReservedTaxiDrivers.TaxiDriverConnectionMonitor] 배차 실패. 예외 메세지 전송. 콜 ID : {}, 유저 ID : {}, 택시기사 ID : {}",
 					callId, customerLoginId, driverLoginId);
