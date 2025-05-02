@@ -149,7 +149,7 @@ public class WebSocketTaxiDriverController {
 
 		// CallAcceptResponse 응답하기.
 		CallAcceptResponse callAcceptResponse = callInfoService.getCallAcceptResponse(callId);
-		log.info("[acceptTaxiCall.CallAcceptResponse] 배차완료.  콜 ID : {}, 고객 ID : {}, 택시기사 ID : {}",
+		log.info("[acceptTaxiCall.WebSocketTaxiDriverController] 배차완료.  콜 ID : {}, 고객 ID : {}, 택시기사 ID : {}",
 			callId, callAcceptResponse.getCustomerLoginId(), taxiDriverId);
 
 		return callAcceptResponse;
@@ -164,6 +164,8 @@ public class WebSocketTaxiDriverController {
 	@MessageMapping("/reject-call")
 	@SendToUser("/queue/reject-call-result")
 	public CallRejectResponse rejectTaxiCall(CallRejectRequest request, Principal principal) {
+		log.info("[rejectTaxiCall.WebSocketTaxiDriverController] 콜 거절.  콜 ID : {}, 택시기사 ID : {}",
+			request.getCallId(), principal.getName());
 
 		// 해당 콜을 거절한 택시기사 집합에 추가
 		redisService.addRejectedDriverToCall(request.getCallId(), principal.getName());

@@ -204,6 +204,7 @@ public class RedisService {
 		log.info("[updateStatus : redis 택시기사 종류 저장] taxiDriverId : {}, 상태 : {}, ", taxiDriverLoginId, changedStatus);
 		setDriversTaxiType(taxiDriverLoginId, taxiType);
 
+
 		// [상태별 처리]
 		if (changedStatus == TaxiDriverStatus.OFF_DUTY) {
 			// 운행 종료. active 택시기사 목록에서 제외
@@ -217,22 +218,11 @@ public class RedisService {
 			// 해당 기사가 가지고 있던 콜 삭제
 			deleteCallBy(taxiDriverLoginId);
 
-			// 콜에 대한 거부 택시 기사목록 삭제
-			// removeRejectedDriversForCall(callId);
-
 		}
 
 		if (changedStatus == TaxiDriverStatus.AVAILABLE) {
-			Optional<String> callIdOptional = getCallIdByDriverId(taxiDriverLoginId);
 
-			if (callIdOptional.isPresent()) {
-
-				Long callId = Long.valueOf(callIdOptional.get());
-				deleteCallBy(taxiDriverLoginId);
-
-				// 콜에 대한 거부 택시 기사목록 삭제
-				removeRejectedDriversForCall(callId);
-			}
+			deleteCallBy(taxiDriverLoginId);
 
 			// 위치정보도 삭제
 			removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.RESERVED);
@@ -315,6 +305,8 @@ public class RedisService {
 			Long callId = Long.valueOf(callIdStr.get());
 			deleteCallStatus(callId); // 콜 상태 삭제
 			deleteAssignedCallOf(taxiDriverLoginId); // 해당 기사가 담당했던 콜 삭제.
+			redisTemplate.delete(String.valueOf(callId)); // 콜 자체를 삭제
+			removeRejectedDriversForCall(callId); // 해당 콜에 대한 거절 택시기사 목록 삭제
 			return;
 		}
 
