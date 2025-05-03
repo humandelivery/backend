@@ -15,12 +15,14 @@ import goorm.humandelivery.application.TaxiDriverService;
 import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.domain.model.entity.CallStatus;
+import goorm.humandelivery.domain.model.entity.DrivingInfo;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.request.CallAcceptRequest;
 import goorm.humandelivery.domain.model.request.CallRejectRequest;
 import goorm.humandelivery.domain.model.request.CallRejectResponse;
+import goorm.humandelivery.domain.model.request.CreateDrivingInfoRequest;
 import goorm.humandelivery.domain.model.request.CreateMatchingRequest;
 import goorm.humandelivery.domain.model.request.UpdateLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusRequest;
@@ -108,7 +110,7 @@ public class WebSocketTaxiDriverController {
 		}
 
 		// 택시기사 위치정보 저장
-		messagingService.sendMessage(taxiDriverLoginId, status, taxiType, customerLoginId, location);
+		messagingService.sendLocation(taxiDriverLoginId, status, taxiType, customerLoginId, location);
 	}
 
 	/**
@@ -185,27 +187,36 @@ public class WebSocketTaxiDriverController {
 	 */
 	@MessageMapping("/ride-start")
 	@SendToUser("/queue/ride-status")
-	public void startRideWithCustomer(@Valid @RequestBody CreateDrivingInfoRequest request, Principal principal) {
+	public void createDrivingInfo(@Valid @RequestBody CallIdRequest request, Principal principal) {
 
 		/**
-		 * 손님 타고, 운행정보 엔티티 생성
+		 * 손님 타고, 택시기사가 손님 탑승 확인 요청을 보냄. 이후 운행정보 엔티티 생성.
 		 */
-
-		// 매칭 조회해야함.
 		Long matchingId = matchingService.findMatchingIdByCallId(request.getCallId());
-
-		// 운행정보 생성
 		Location taxiDriverLocation = redisService.getDriverLocation(principal.getName());
 
+		CreateDrivingInfoRequest drivingInfoRequest = new CreateDrivingInfoRequest(matchingId,
+			taxiDriverLocation);
 
-		// 1. 손님 탓으니까, 운행 시작
 		// 운행정보 엔티티 생성
+		DrivingInfo savedDrivingInfo = drivingInfoService.create(drivingInfoRequest);
 
 		// 택시 상태 변경
+		String taxiDriverLoginId = principal.getName();
+		TaxiDriverStatus changedStatus = taxiDriverService.changeStatus(taxiDriverLoginId,
+			TaxiDriverStatus.ON_DRIVING);
+
 		// 레디스 상태 변경
+		TaxiType taxiType = redisService.getDriversTaxiType(taxiDriverLoginId);
+		redisService.handleTaxiDriverStatusInRedis(taxiDriverLoginId, changedStatus, taxiType);
 
-		// 손님에게 운행 시작 메세지 전달
-		// 택시에게 응답 반
+		// 운행 시작 메세지 전달
+		Long callId = request.getCallId();
+		String customerLoginId = callInfoService.findCustomerLoginIdById(callId);
+		boolean isDrivingStarted = savedDrivingInfo.isDrivingStarted();
 
+		// 응답 반환.
+		messagingService.sendDispatchResultMessageToUser(customerLoginId, isDrivingStarted);
+		messagingService.sendDispatchResultMessageToTaxiDriver(taxiDriverLoginId, isDrivingStarted);
 	}
 }

@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class CreateDrivingInfoRequest {
+public class CallIdRequest {
 
 	@NotBlank
 	private Long callId;

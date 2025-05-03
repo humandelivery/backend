@@ -60,15 +60,18 @@ public class RedisService {
 	}
 
 	public Location getLocation(String key, String loginId) {
-		Point point = redisTemplate.opsForGeo()
-			.position(key, loginId)
-			.stream()
-			.findFirst()
-			.orElse(null);
+		List<Point> position = redisTemplate.opsForGeo()
+			.position(key, loginId);
 
-		if (point == null) {
+		if (position == null) {
 			throw new LocationNotInRedisException(key, loginId);
 		}
+
+		Point point = position
+			.stream()
+			.findFirst()
+			.orElseThrow(() -> new LocationNotInRedisException(key, loginId));
+
 
 		return new Location(point.getY(), point.getX()); // 위도, 경도 순서
 	}

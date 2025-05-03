@@ -12,6 +12,7 @@ import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.request.LocationResponse;
+import goorm.humandelivery.domain.model.response.DrivingInfoResponse;
 import goorm.humandelivery.domain.model.response.ErrorResponse;
 import goorm.humandelivery.domain.model.response.MatchingSuccessResponse;
 import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
@@ -24,6 +25,9 @@ public class MessagingService {
 
 	private static final String LOCATION_TO_USER = "/queue/update-taxidriver-location";
 	private static final String RIDE_STATUS_TO_USER = "/queue/ride-status";
+
+	private static final String DISPATCH_RESULT_MESSAGE = "/queue/ride-status";
+
 	private static final String DISPATCH_FAIL_MESSAGE_TO_USER = "/queue/dispatch-error";
 	private static final String DISPATCH_FAIL_MESSAGE_TO_TAXI_DRIVER = "/queue/dispatch-canceled";
 
@@ -37,7 +41,7 @@ public class MessagingService {
 		this.redisService = redisService;
 	}
 
-	public void sendMessage(String taxiDriverLoginId, TaxiDriverStatus status, TaxiType taxiType,
+	public void sendLocation(String taxiDriverLoginId, TaxiDriverStatus status, TaxiType taxiType,
 		String customerLoginId, Location location
 	) {
 		log.info("[MessagingService sendMessage : 호출] 택시기사아이디 : {}, 택시기사상태 : {}, 택시타입 : {},  고객아이디 : {} ",
@@ -80,13 +84,30 @@ public class MessagingService {
 
 	}
 
+	public void sendDispatchResultMessageToUser(String customerLoginId, boolean isDrivingStarted) {
+		messagingTemplate.convertAndSendToUser(
+			customerLoginId,
+			DISPATCH_RESULT_MESSAGE,
+			new DrivingInfoResponse(isDrivingStarted)
+		);
+
+	}
+
+	public void sendDispatchResultMessageToTaxiDriver(String taxiDriverLoginId, boolean isDrivingStarted) {
+		messagingTemplate.convertAndSendToUser(
+			taxiDriverLoginId,
+			DISPATCH_RESULT_MESSAGE,
+			new DrivingInfoResponse(isDrivingStarted)
+		);
+	}
+
+
 	public void sendDispatchFailMessageToUser(String customerLoginId) {
 		messagingTemplate.convertAndSendToUser(
 			customerLoginId,
 			DISPATCH_FAIL_MESSAGE_TO_USER,
 			new ErrorResponse("배차실패", "택시와 연결이 끊어졌습니다. 다시 배차를 시도합니다.")
 		);
-
 	}
 
 	public void sendDispatchFailMessageToTaxiDriver(String driverLoginId) {
