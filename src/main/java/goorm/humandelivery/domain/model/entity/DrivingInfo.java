@@ -16,6 +16,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
@@ -66,4 +67,15 @@ public class DrivingInfo extends BaseEntity {
 	public boolean isDrivingStarted() {
 		return drivingStatus == DrivingStatus.ON_DRIVING;
 	}
+
+	public boolean isDrivingFinished() {
+		return drivingStatus == DrivingStatus.COMPLETE;
+	}
+
+	public void finishDriving(Location destination, LocalDateTime arrivingTime) {
+		this.destination = destination;
+		this.arrivingTime = arrivingTime;
+		drivingStatus = DrivingStatus.COMPLETE;
+	}
+
 }

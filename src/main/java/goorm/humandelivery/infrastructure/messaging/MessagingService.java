@@ -13,6 +13,7 @@ import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.request.LocationResponse;
 import goorm.humandelivery.domain.model.response.DrivingInfoResponse;
+import goorm.humandelivery.domain.model.response.DrivingSummaryResponse;
 import goorm.humandelivery.domain.model.response.ErrorResponse;
 import goorm.humandelivery.domain.model.response.MatchingSuccessResponse;
 import goorm.humandelivery.infrastructure.redis.RedisKeyParser;
@@ -25,12 +26,9 @@ public class MessagingService {
 
 	private static final String LOCATION_TO_USER = "/queue/update-taxidriver-location";
 	private static final String RIDE_STATUS_TO_USER = "/queue/ride-status";
-
-	private static final String DISPATCH_RESULT_MESSAGE = "/queue/ride-status";
-
+	private static final String DISPATCH_DRIVING_RESULT_MESSAGE = "/queue/ride-status";
 	private static final String DISPATCH_FAIL_MESSAGE_TO_USER = "/queue/dispatch-error";
 	private static final String DISPATCH_FAIL_MESSAGE_TO_TAXI_DRIVER = "/queue/dispatch-canceled";
-
 
 	private final SimpMessagingTemplate messagingTemplate;
 	private final RedisService redisService;
@@ -60,15 +58,14 @@ public class MessagingService {
 			location);
 		log.info("[MessagingService sendMessage : 위치정보 저장] 택시기사아이디 : {}, 레디스 키 : {} ", taxiDriverLoginId, locationKey);
 
-
 		// Redis 에 택시별 위치정보 시간 기록 => 추후 택시기사 정상 여부 검증에 사용합니다.
 		String currentTime = String.valueOf(System.currentTimeMillis());
 
 		//  String.format("taxidriver:%s:lastupdate", taxiDriverLoginId);
 		String updateTimeKey = RedisKeyParser.taxiDriverLastUpdate(taxiDriverLoginId);
 		redisService.setValueWithTTL(updateTimeKey, currentTime, Duration.ofMinutes(5));
-		log.info("[MessagingService sendMessage : 위치정보 갱신시간 저장] 택시기사아이디 : {}, 레디스 키 : {} ", taxiDriverLoginId, updateTimeKey);
-
+		log.info("[MessagingService sendMessage : 위치정보 갱신시간 저장] 택시기사아이디 : {}, 레디스 키 : {} ", taxiDriverLoginId,
+			updateTimeKey);
 
 		// 예약중이거나, 운행중인 경우 유저에게도 직접 전달합니다.
 		if (status == TaxiDriverStatus.RESERVED || status == TaxiDriverStatus.ON_DRIVING) {
@@ -84,22 +81,41 @@ public class MessagingService {
 
 	}
 
-	public void sendDispatchResultMessageToUser(String customerLoginId, boolean isDrivingStarted) {
+	public void sendDrivingStartMessageToUser(String customerLoginId, boolean isDrivingStarted,
+		boolean isDrivingFinished) {
 		messagingTemplate.convertAndSendToUser(
 			customerLoginId,
-			DISPATCH_RESULT_MESSAGE,
-			new DrivingInfoResponse(isDrivingStarted)
+			DISPATCH_DRIVING_RESULT_MESSAGE,
+			new DrivingInfoResponse(isDrivingStarted, isDrivingFinished)
 		);
-
 	}
 
-	public void sendDispatchResultMessageToTaxiDriver(String taxiDriverLoginId, boolean isDrivingStarted) {
+	public void sendDrivingStartMessageToTaxiDriver(String taxiDriverLoginId, boolean isDrivingStarted,
+		boolean isDrivingFinished) {
 		messagingTemplate.convertAndSendToUser(
 			taxiDriverLoginId,
-			DISPATCH_RESULT_MESSAGE,
-			new DrivingInfoResponse(isDrivingStarted)
+			DISPATCH_DRIVING_RESULT_MESSAGE,
+			new DrivingInfoResponse(isDrivingStarted, isDrivingFinished)
 		);
 	}
+
+	public void sendDrivingCompletedMessageToUser(String customerLoginId, DrivingSummaryResponse response) {
+		messagingTemplate.convertAndSendToUser(
+			customerLoginId,
+			DISPATCH_DRIVING_RESULT_MESSAGE,
+			response
+		);
+	}
+
+
+	public void sendDrivingCompletedMessageToTaxiDriver(String taxiDriverLoginId, DrivingSummaryResponse response) {
+		messagingTemplate.convertAndSendToUser(
+			taxiDriverLoginId,
+			DISPATCH_DRIVING_RESULT_MESSAGE,
+			response
+		);
+	}
+
 
 
 	public void sendDispatchFailMessageToUser(String customerLoginId) {

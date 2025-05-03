@@ -10,8 +10,10 @@ import lombok.Setter;
 public class DrivingInfoResponse {
 
 	private boolean isDrivingStarted;
+	private boolean isDrivingFinished;
 
-	public DrivingInfoResponse(boolean isDrivingStarted) {
+	public DrivingInfoResponse(boolean isDrivingStarted, boolean isDrivingFinished) {
 		this.isDrivingStarted = isDrivingStarted;
+		this.isDrivingFinished = isDrivingFinished;
 	}
 }
