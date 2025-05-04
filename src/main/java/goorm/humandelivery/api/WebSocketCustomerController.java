@@ -28,4 +28,9 @@ public class WebSocketCustomerController {
 
 		return new CallRequestMessageResponse("콜이 성공적으로 요청되었습니다.");
 	}
+
+	public void cancelCall(){
+
+	}
+
 }

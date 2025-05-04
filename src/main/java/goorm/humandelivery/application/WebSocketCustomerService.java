@@ -34,4 +34,10 @@ public class WebSocketCustomerService {
 		Customer customer = customerService.findCustomerByLoginId(senderId);
 		return callRepository.save(request.toCallInfo(customer)).getId();
 	}
+
+	public void deleteCallById(Long callId) {
+		callRepository.deleteById(callId);
+	}
+
+
 }

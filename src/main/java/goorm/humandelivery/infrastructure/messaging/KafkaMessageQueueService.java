@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import goorm.humandelivery.application.WebSocketCustomerService;
 import goorm.humandelivery.common.exception.NoAvailableTaxiException;
 import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.internal.CallMessage;
@@ -22,6 +23,7 @@ public class KafkaMessageQueueService implements MessageQueueService {
 	private final TaxiDriverRepository taxiDriverRepository;
 	private final SimpMessagingTemplate messagingTemplate;
 	private final KafkaMessageProducer kafkaMessageProducer;
+	private final WebSocketCustomerService webSocketCustomerService;
 	private final RedisService redisService;
 
 	@Override
@@ -62,7 +64,7 @@ public class KafkaMessageQueueService implements MessageQueueService {
 		if(availableTaxiDrivers.isEmpty()){
 			// 여겨시 택시 수가 0인경우 없다는 메세지를 고객에게 전달.
 			log.info("범위 내에 유효한 택시가 없음");
-
+			webSocketCustomerService.deleteCallById(callMessage.getCallId());
 			throw new NoAvailableTaxiException();
 		}
 
