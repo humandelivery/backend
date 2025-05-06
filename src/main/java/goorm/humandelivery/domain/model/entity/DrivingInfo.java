@@ -15,6 +15,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
@@ -49,5 +51,31 @@ public class DrivingInfo extends BaseEntity {
 	private DrivingStatus drivingStatus;
 
 	private boolean reported;
+
+	@Builder
+	public DrivingInfo(Matching matching, Location origin, LocalDateTime pickupTime, Location destination,
+		LocalDateTime arrivingTime, DrivingStatus drivingStatus, boolean reported) {
+		this.matching = matching;
+		this.origin = origin;
+		this.pickupTime = pickupTime;
+		this.destination = destination;
+		this.arrivingTime = arrivingTime;
+		this.drivingStatus = drivingStatus;
+		this.reported = reported;
+	}
+
+	public boolean isDrivingStarted() {
+		return drivingStatus == DrivingStatus.ON_DRIVING;
+	}
+
+	public boolean isDrivingFinished() {
+		return drivingStatus == DrivingStatus.COMPLETE;
+	}
+
+	public void finishDriving(Location destination, LocalDateTime arrivingTime) {
+		this.destination = destination;
+		this.arrivingTime = arrivingTime;
+		drivingStatus = DrivingStatus.COMPLETE;
+	}
 
 }

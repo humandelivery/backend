@@ -6,24 +6,30 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import goorm.humandelivery.application.CallInfoService;
+import goorm.humandelivery.application.DrivingInfoService;
 import goorm.humandelivery.application.MatchingService;
 import goorm.humandelivery.application.TaxiDriverService;
 import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.domain.model.entity.CallStatus;
+import goorm.humandelivery.domain.model.entity.DrivingInfo;
+import goorm.humandelivery.domain.model.entity.DrivingStatus;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.request.CallAcceptRequest;
 import goorm.humandelivery.domain.model.request.CallRejectRequest;
 import goorm.humandelivery.domain.model.request.CallRejectResponse;
+import goorm.humandelivery.domain.model.request.CreateDrivingInfoRequest;
 import goorm.humandelivery.domain.model.request.CreateMatchingRequest;
 import goorm.humandelivery.domain.model.request.UpdateLocationRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusRequest;
 import goorm.humandelivery.domain.model.request.UpdateTaxiDriverStatusResponse;
 import goorm.humandelivery.domain.model.response.CallAcceptResponse;
+import goorm.humandelivery.domain.model.response.DrivingSummaryResponse;
 import goorm.humandelivery.infrastructure.messaging.MessagingService;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import jakarta.validation.Valid;
@@ -39,15 +45,18 @@ public class WebSocketTaxiDriverController {
 	private final MessagingService messagingService;
 	private final MatchingService matchingService;
 	private final CallInfoService callInfoService;
+	private final DrivingInfoService drivingInfoService;
 
 	@Autowired
 	public WebSocketTaxiDriverController(RedisService redisService, TaxiDriverService taxiDriverService,
-		MessagingService messagingService, MatchingService matchingService, CallInfoService callInfoService) {
+		MessagingService messagingService, MatchingService matchingService, CallInfoService callInfoService,
+		DrivingInfoService drivingInfoService) {
 		this.redisService = redisService;
 		this.taxiDriverService = taxiDriverService;
 		this.messagingService = messagingService;
 		this.matchingService = matchingService;
 		this.callInfoService = callInfoService;
+		this.drivingInfoService = drivingInfoService;
 	}
 
 	/**
@@ -58,7 +67,7 @@ public class WebSocketTaxiDriverController {
 	 */
 	@MessageMapping("/update-status")
 	@SendToUser("/queue/taxi-driver-status")
-	public UpdateTaxiDriverStatusResponse updateStatus(@Valid UpdateTaxiDriverStatusRequest request,
+	public UpdateTaxiDriverStatusResponse updateStatus(@Valid @RequestBody UpdateTaxiDriverStatusRequest request,
 		Principal principal) {
 
 		String taxiDriverLoginId = principal.getName();
@@ -83,7 +92,7 @@ public class WebSocketTaxiDriverController {
 	 * @return UpdateLocationResponse
 	 */
 	@MessageMapping("/update-location")
-	public void updateLocation(@Valid UpdateLocationRequest request, Principal principal) {
+	public void updateLocation(UpdateLocationRequest request, Principal principal) {
 		String taxiDriverLoginId = principal.getName();
 		String customerLoginId = request.getCustomerLoginId();
 		Location location = request.getLocation();
@@ -103,7 +112,7 @@ public class WebSocketTaxiDriverController {
 		}
 
 		// 택시기사 위치정보 저장
-		messagingService.sendMessage(taxiDriverLoginId, status, taxiType, customerLoginId, location);
+		messagingService.sendLocation(taxiDriverLoginId, status, taxiType, customerLoginId, location);
 	}
 
 	/**
@@ -114,9 +123,13 @@ public class WebSocketTaxiDriverController {
 	@MessageMapping("/accept-call")
 	@SendToUser("/queue/accept-call-result")
 	public CallAcceptResponse acceptTaxiCall(CallAcceptRequest request, Principal principal) {
+		log.info("[acceptTaxiCall 호출]");
 
 		Long callId = request.getCallId();
 		String taxiDriverLoginId = principal.getName();
+
+		log.info("[acceptTaxiCall 호출] callId : {}, taxiDriverId : {}", callId, taxiDriverLoginId);
+
 
 		CallStatus callStatus = redisService.getCallStatus(callId);
 
@@ -152,6 +165,9 @@ public class WebSocketTaxiDriverController {
 		log.info("[acceptTaxiCall.WebSocketTaxiDriverController] 배차완료.  콜 ID : {}, 고객 ID : {}, 택시기사 ID : {}",
 			callId, callAcceptResponse.getCustomerLoginId(), taxiDriverId);
 
+		// 고객에게 배차되엇다고 상태 전달하기
+		messagingService.notifyDispatchSuccessToCustomer(callAcceptResponse.getCustomerLoginId(), taxiDriverLoginId);
+
 		return callAcceptResponse;
 	}
 
@@ -170,5 +186,73 @@ public class WebSocketTaxiDriverController {
 		// 해당 콜을 거절한 택시기사 집합에 추가
 		redisService.addRejectedDriverToCall(request.getCallId(), principal.getName());
 		return new CallRejectResponse(request.getCallId());
+	}
+
+	/**
+	 * 승객 승차 완료 요청 처리
+	 */
+	@MessageMapping("/ride-start")
+	public void createDrivingInfo(CallIdRequest request, Principal principal) {
+
+		/**
+		 * 손님 타고, 택시기사가 손님 탑승 확인 요청을 보냄. 이후 운행정보 엔티티 생성.
+		 */
+		Long matchingId = matchingService.findMatchingIdByCallId(request.getCallId());
+		Location taxiDriverLocation = redisService.getDriverLocation(principal.getName());
+
+		CreateDrivingInfoRequest drivingInfoRequest = new CreateDrivingInfoRequest(matchingId,
+			taxiDriverLocation);
+
+		// 운행정보 엔티티 생성
+		DrivingInfo savedDrivingInfo = drivingInfoService.create(drivingInfoRequest);
+
+		// 택시 상태 변경
+		String taxiDriverLoginId = principal.getName();
+		TaxiDriverStatus changedStatus = taxiDriverService.changeStatus(taxiDriverLoginId,
+			TaxiDriverStatus.ON_DRIVING);
+
+		// 레디스 상태 변경
+		TaxiType taxiType = redisService.getDriversTaxiType(taxiDriverLoginId);
+		redisService.handleTaxiDriverStatusInRedis(taxiDriverLoginId, changedStatus, taxiType);
+
+		// 운행 시작 메세지 전달
+		Long callId = request.getCallId();
+		String customerLoginId = callInfoService.findCustomerLoginIdById(callId);
+		boolean isDrivingStarted = savedDrivingInfo.isDrivingStarted();
+
+		// 응답 반환.
+		messagingService.sendDrivingStartMessageToUser(customerLoginId, isDrivingStarted, false);
+		messagingService.sendDrivingStartMessageToTaxiDriver(taxiDriverLoginId, isDrivingStarted, false);
+	}
+
+	/**
+	 * 승객 하차 완료 요청 처리
+	 */
+	@MessageMapping("/ride-finish")
+	public void finishDriving(CallIdRequest request, Principal principal) {
+
+		/**
+		 * 손님이 하차했다. 드라이빙 인포 조회해서 상태 바꾸고, 택시기사 상태 바꿔야한다.
+		 * 그리고 손님과 택시기사에게 DrivingInfoResponse 를 전달해야 한다.
+		 */
+
+		Long callId = request.getCallId();
+		String taxiDriverLoginId = principal.getName();
+
+		Location location = redisService.getDriverLocation(taxiDriverLoginId);
+
+		DrivingSummaryResponse response = drivingInfoService.finishDriving(callId, location);
+
+		// 택시기사 상태 바꾸기 -> 빈차
+		TaxiDriverStatus changedStatus = taxiDriverService.changeStatus(taxiDriverLoginId,
+			TaxiDriverStatus.AVAILABLE);
+
+		// 택시기사 상태 바꾸기 -> redis
+		TaxiType taxiType = redisService.getDriversTaxiType(taxiDriverLoginId);
+		redisService.handleTaxiDriverStatusInRedis(taxiDriverLoginId, changedStatus, taxiType);
+
+		// 메세지 전송
+		messagingService.sendDrivingCompletedMessageToUser(response.getCustomerLoginId(), response);
+		messagingService.sendDrivingCompletedMessageToTaxiDriver(taxiDriverLoginId, response);
 	}
 }
