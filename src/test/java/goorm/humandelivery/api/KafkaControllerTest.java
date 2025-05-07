@@ -7,12 +7,9 @@ import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiType;
 import goorm.humandelivery.domain.model.internal.CallMessage;
 import goorm.humandelivery.infrastructure.messaging.KafkaMessageQueueService;
-import lombok.RequiredArgsConstructor;
 
-@RestController
-@RequiredArgsConstructor
 public class KafkaControllerTest {
-	private final KafkaMessageQueueService messageQueueService;
+	/*private final KafkaMessageQueueService messageQueueService;
 
 	@PostMapping("/test-call")
 	public String testKafkaCall(){
@@ -23,6 +20,6 @@ public class KafkaControllerTest {
 			TaxiType.VENTI);
 		messageQueueService.enqueue(msg);
 		return "전송 완료";
-	}
+	}*/
 
 }

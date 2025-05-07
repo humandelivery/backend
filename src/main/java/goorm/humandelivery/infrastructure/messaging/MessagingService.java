@@ -11,6 +11,7 @@ import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
+import goorm.humandelivery.domain.model.internal.CallMessage;
 import goorm.humandelivery.domain.model.request.LocationResponse;
 import goorm.humandelivery.domain.model.response.DrivingInfoResponse;
 import goorm.humandelivery.domain.model.response.DrivingSummaryResponse;
@@ -26,7 +27,8 @@ public class MessagingService {
 
 	private static final String LOCATION_TO_USER = "/queue/update-taxidriver-location";
 	private static final String RIDE_STATUS_TO_USER = "/queue/ride-status";
-	private static final String DISPATCH_DRIVING_RESULT_MESSAGE = "/queue/ride-status";
+	private static final String DISPATCH_DRIVING_STATUS_MESSAGE = "/queue/ride-status";
+	private static final String DISPATCH_DRIVING_RESULT_MESSAGE = "/queue/driving-result";
 	private static final String DISPATCH_FAIL_MESSAGE_TO_USER = "/queue/dispatch-error";
 	private static final String DISPATCH_FAIL_MESSAGE_TO_TAXI_DRIVER = "/queue/dispatch-canceled";
 
@@ -85,7 +87,7 @@ public class MessagingService {
 		boolean isDrivingFinished) {
 		messagingTemplate.convertAndSendToUser(
 			customerLoginId,
-			DISPATCH_DRIVING_RESULT_MESSAGE,
+			DISPATCH_DRIVING_STATUS_MESSAGE,
 			new DrivingInfoResponse(isDrivingStarted, isDrivingFinished)
 		);
 	}
@@ -94,7 +96,7 @@ public class MessagingService {
 		boolean isDrivingFinished) {
 		messagingTemplate.convertAndSendToUser(
 			taxiDriverLoginId,
-			DISPATCH_DRIVING_RESULT_MESSAGE,
+			DISPATCH_DRIVING_STATUS_MESSAGE,
 			new DrivingInfoResponse(isDrivingStarted, isDrivingFinished)
 		);
 	}
@@ -102,21 +104,22 @@ public class MessagingService {
 	public void sendDrivingCompletedMessageToUser(String customerLoginId, DrivingSummaryResponse response) {
 		messagingTemplate.convertAndSendToUser(
 			customerLoginId,
-			DISPATCH_DRIVING_RESULT_MESSAGE,
+			DISPATCH_DRIVING_STATUS_MESSAGE,
 			response
 		);
 	}
 
-
 	public void sendDrivingCompletedMessageToTaxiDriver(String taxiDriverLoginId, DrivingSummaryResponse response) {
+		log.info("[sendDrivingCompletedMessageToTaxiDriver.MessagingService] 택시 기사에게 손님 하차 응답 메세지 전송.  콜 ID : {}, 택시기사 ID : {}", response.getCallId(),
+			taxiDriverLoginId);
+
+		log.info("DrivingSummaryResponse : {}", response.toString());
 		messagingTemplate.convertAndSendToUser(
 			taxiDriverLoginId,
 			DISPATCH_DRIVING_RESULT_MESSAGE,
 			response
 		);
 	}
-
-
 
 	public void sendDispatchFailMessageToUser(String customerLoginId) {
 		messagingTemplate.convertAndSendToUser(
@@ -141,5 +144,24 @@ public class MessagingService {
 			RIDE_STATUS_TO_USER,
 			new MatchingSuccessResponse(driverStatus, driverLoginId)
 		);
+	}
+
+	public void notifyDispatchFailedToCustomer(String customerLoginId) {
+		log.info(
+			"[notifyDispatchFailedToCustomer.MessagingService 호출] 범위 내에 택시가 없습니다. 배차 취소 메세지 전송. 고객 아이디 : {}, 목적지 : {}",
+			customerLoginId, DISPATCH_FAIL_MESSAGE_TO_USER);
+		messagingTemplate.convertAndSendToUser(
+			customerLoginId,
+			DISPATCH_FAIL_MESSAGE_TO_USER,
+			new ErrorResponse("배차취소", "범위 내에 택시가 없습니다. 잠시 후에 시도해주세요.")
+		);
+	}
+
+	public void sendCallMessageToTaxiDriver(String driverLoginId, CallMessage callMessage) {
+		String destination = "/queue/call";
+		messagingTemplate.convertAndSendToUser(
+			driverLoginId,                        // 사용자 이름(Principal name)
+			destination,                        // 목적지
+			callMessage);                        // 전송할 메세지
 	}
 }

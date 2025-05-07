@@ -53,6 +53,7 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
 		 * 	/queue : 관례상 일대일 메세지 전송에서 사용.
 		 */
 		config.enableSimpleBroker("/topic", "/queue");
+		config.setUserDestinationPrefix("/user");
 
 	}
 

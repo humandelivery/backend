@@ -192,6 +192,8 @@ public class WebSocketTaxiDriverController {
 	@MessageMapping("/ride-start")
 	public void createDrivingInfo(CallIdRequest request, Principal principal) {
 
+		log.info("[createDrivingInfo.WebSocketTaxiDriverController] 고객 승차.  콜 ID : {}, 택시기사 ID : {}", request.getCallId(),
+			principal.getName());
 		/**
 		 * 손님 타고, 택시기사가 손님 탑승 확인 요청을 보냄. 이후 운행정보 엔티티 생성.
 		 */
@@ -224,7 +226,7 @@ public class WebSocketTaxiDriverController {
 	}
 
 	/**
-	 * 승객 하차 완료 요청 처리
+	 * 승객 하차 완료 요청 처리 /app/taxi-driver/ride-finish
 	 */
 	@MessageMapping("/ride-finish")
 	public void finishDriving(CallIdRequest request, Principal principal) {
@@ -233,6 +235,8 @@ public class WebSocketTaxiDriverController {
 		 * 손님이 하차했다. 드라이빙 인포 조회해서 상태 바꾸고, 택시기사 상태 바꿔야한다.
 		 * 그리고 손님과 택시기사에게 DrivingInfoResponse 를 전달해야 한다.
 		 */
+		log.info("[finishDriving.WebSocketTaxiDriverController] 하차 요청.  콜 ID : {}, 택시기사 ID : {}", request.getCallId(),
+			principal.getName());
 
 		Long callId = request.getCallId();
 		String taxiDriverLoginId = principal.getName();

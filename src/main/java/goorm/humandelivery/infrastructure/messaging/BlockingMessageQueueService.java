@@ -66,6 +66,7 @@ public class BlockingMessageQueueService implements MessageQueueService {
 
 		List<String> availableTaxiDrivers
 			= redisService.findNearByAvailableDrivers(
+				callMessage.getCallId(),
 			callMessage.getTaxiType(),
 			callMessage.getExpectedOrigin().getLatitude(),
 			callMessage.getExpectedOrigin().getLongitude(),

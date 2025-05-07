@@ -5,7 +5,6 @@ import goorm.humandelivery.domain.model.entity.TaxiType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 @AllArgsConstructor
@@ -15,7 +14,7 @@ import lombok.Setter;
 public class CallMessage extends QueueMessage {
 
 	private Long callId;
-	//private String senderId;
+	private String customerLoginId;
 	private Location expectedOrigin;
 	private Location expectedDestination;
 	private TaxiType taxiType;
