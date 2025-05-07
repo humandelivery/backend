@@ -31,10 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 public class BlockingMessageQueueService implements MessageQueueService {
 
 	private final BlockingQueue<QueueMessage> blockingMessageQueue = new LinkedBlockingQueue<>();
-	private final TaxiDriverRepository taxiDriverRepository;
-	private final WebSocketCustomerController webSocketCustomerController;
 	private final WebSocketCustomerService webSocketCustomerService;
 	private final RedisService redisService;
+	private final SimpMessagingTemplate messagingTemplate;
 
 
 	@Override
@@ -83,8 +82,16 @@ public class BlockingMessageQueueService implements MessageQueueService {
 		// 2. 해당 택시기사들에게 메세지 전송
 		redisService.setCallWith(callMessage.getCallId(), CallStatus.SENT);
 		for (String taxiDriverLonginId : availableTaxiDrivers) {
-			webSocketCustomerController.sendCallMessageToTaxiDriver(taxiDriverLonginId, callMessage);
+			sendCallMessageToTaxiDriver(taxiDriverLonginId, callMessage);
 		}
 		log.info("유효한 택시기사에게 콜 요청 전송 완료");
+	}
+
+	public void sendCallMessageToTaxiDriver(String driverLoginId, CallMessage callMessage) {
+		String destination = "/queue/call";
+		messagingTemplate.convertAndSendToUser(
+			driverLoginId,						// 사용자 이름(Principal name)
+			destination, 						// 목적지
+			callMessage);						// 전송할 메세지
 	}
 }

@@ -23,11 +23,12 @@ public class WebSocketCustomerService {
 	// private final BlockingMessageQueueService messageQueueService;
 	private final KafkaMessageQueueService messageQueueService;
 
-	public void processMessage(CallMessageRequest request, String senderId) {
+	public Long processMessage(CallMessageRequest request, String senderId) {
 		Long callId = saveCallAndGetCallId(request, senderId);
 		log.info("콜 내용 DB에 저장 완료");
 		messageQueueService.enqueue(request.toQueueMessage(callId));
 		log.info("콜 요청을 카프카 메시지 큐에 등록");
+		return callId;
 	}
 
 	public Long saveCallAndGetCallId(CallMessageRequest request, String senderId){
@@ -39,5 +40,8 @@ public class WebSocketCustomerService {
 		callRepository.deleteById(callId);
 	}
 
+	public void calcelMatch(Long callId) {
+
+	}
 
 }

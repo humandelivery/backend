@@ -11,6 +11,7 @@ import goorm.humandelivery.common.exception.NoAvailableTaxiException;
 import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.internal.CallMessage;
 import goorm.humandelivery.domain.model.internal.QueueMessage;
+import goorm.humandelivery.domain.repository.CallRepository;
 import goorm.humandelivery.domain.repository.TaxiDriverRepository;
 import goorm.humandelivery.infrastructure.redis.RedisService;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class KafkaMessageQueueService implements MessageQueueService {
 
-	private final TaxiDriverRepository taxiDriverRepository;
 	private final SimpMessagingTemplate messagingTemplate;
 	private final KafkaMessageProducer kafkaMessageProducer;
-	private final WebSocketCustomerController webSocketCustomerController;
-	private final WebSocketCustomerService webSocketCustomerService;
 	private final RedisService redisService;
+	private final CallRepository callRepository;
 
 	@Override
 	public void enqueue(QueueMessage message) {
@@ -66,15 +65,28 @@ public class KafkaMessageQueueService implements MessageQueueService {
 		if(availableTaxiDrivers.isEmpty()){
 			// 여겨시 택시 수가 0인경우 없다는 메세지를 고객에게 전달.
 			log.info("범위 내에 유효한 택시가 없음");
-			webSocketCustomerService.deleteCallById(callMessage.getCallId());
+			deleteCallById(callMessage.getCallId());
 			throw new NoAvailableTaxiException();
 		}
 
 		// 2. 해당 택시기사들에게 메세지 전송
 		redisService.setCallWith(callMessage.getCallId(), CallStatus.SENT);
 		for (String taxiDriverLonginId : availableTaxiDrivers) {
-			webSocketCustomerController.sendCallMessageToTaxiDriver(taxiDriverLonginId, callMessage);
+			sendCallMessageToTaxiDriver(taxiDriverLonginId, callMessage);
 		}
 		log.info("유효한 택시기사에게 콜 요청 전송 완료");
+	}
+
+	public void sendCallMessageToTaxiDriver(String driverLoginId, CallMessage callMessage) {
+		String destination = "/queue/call";
+		messagingTemplate.convertAndSendToUser(
+			driverLoginId,						// 사용자 이름(Principal name)
+			destination, 						// 목적지
+			callMessage);						// 전송할 메세지
+
+	}
+
+	public void deleteCallById(Long callId) {
+		callRepository.deleteById(callId);
 	}
 }

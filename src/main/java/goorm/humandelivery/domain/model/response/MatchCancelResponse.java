@@ -5,18 +5,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Setter
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CallRequestMessageResponse {
+public class MatchCancelResponse {
+	Long callId;
+	String message;
 
-	private Long callId;
-	private String message;
-	// 성공 실패 여부 Enum으로 추가
-
-	@Override
-	public String toString() {
-		return message;
-	}
 }
