@@ -2,13 +2,17 @@ package goorm.humandelivery.api;
 
 import java.security.Principal;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
 import goorm.humandelivery.application.WebSocketCustomerService;
+import goorm.humandelivery.domain.model.internal.CallMessage;
 import goorm.humandelivery.domain.model.request.CallMessageRequest;
 import goorm.humandelivery.domain.model.response.CallRequestMessageResponse;
+import goorm.humandelivery.domain.model.response.CallTargetTaxiDriverDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class WebSocketCustomerController {
 
 	private final WebSocketCustomerService webSocketCustomerService;
+	private final SimpMessagingTemplate messagingTemplate;
 
 	@MessageMapping("/call/request")
 	@SendToUser("/queue/call/response")
@@ -30,6 +35,15 @@ public class WebSocketCustomerController {
 	}
 
 	public void cancelCall(){
+
+	}
+
+	public void sendCallMessageToTaxiDriver(String driverLoginId, CallMessage callMessage) {
+		String destination = "/queue/call";
+		messagingTemplate.convertAndSendToUser(
+			driverLoginId,						// 사용자 이름(Principal name)
+			destination, 						// 목적지
+			callMessage);						// 전송할 메세지
 
 	}
 
