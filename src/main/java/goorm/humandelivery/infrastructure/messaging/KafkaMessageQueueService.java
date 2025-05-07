@@ -6,6 +6,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import goorm.humandelivery.api.WebSocketCustomerController;
+import goorm.humandelivery.application.WebSocketCustomerService;
 import goorm.humandelivery.common.exception.NoAvailableTaxiException;
 import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.internal.CallMessage;
@@ -23,6 +25,8 @@ public class KafkaMessageQueueService implements MessageQueueService {
 	private final TaxiDriverRepository taxiDriverRepository;
 	private final SimpMessagingTemplate messagingTemplate;
 	private final KafkaMessageProducer kafkaMessageProducer;
+	private final WebSocketCustomerController webSocketCustomerController;
+	private final WebSocketCustomerService webSocketCustomerService;
 	private final RedisService redisService;
 
 	@Override
@@ -64,24 +68,15 @@ public class KafkaMessageQueueService implements MessageQueueService {
 		if(availableTaxiDrivers.isEmpty()){
 			// 여겨시 택시 수가 0인경우 없다는 메세지를 고객에게 전달.
 			log.info("범위 내에 유효한 택시가 없음");
-
+			webSocketCustomerService.deleteCallById(callMessage.getCallId());
 			throw new NoAvailableTaxiException();
 		}
 
 		// 2. 해당 택시기사들에게 메세지 전송
 		redisService.setCallWith(callMessage.getCallId(), CallStatus.SENT);
 		for (String taxiDriverLonginId : availableTaxiDrivers) {
-			sendCallMessageToTaxiDriver(taxiDriverLonginId, callMessage);
+			webSocketCustomerController.sendCallMessageToTaxiDriver(taxiDriverLonginId, callMessage);
 		}
 		log.info("유효한 택시기사에게 콜 요청 전송 완료");
-	}
-
-	public void sendCallMessageToTaxiDriver(String taxiDriverLoginId, CallMessage callMessage) {
-		String destination = "/queue/call";
-		messagingTemplate.convertAndSendToUser(
-			taxiDriverLoginId,					// User: 사용자 이름(Principal name)
-			destination,						// Destination: 목적지
-			callMessage);						// Payload: 전송할 메세지
-
 	}
 }
