@@ -16,7 +16,6 @@ import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.entity.DrivingInfo;
-import goorm.humandelivery.domain.model.entity.DrivingStatus;
 import goorm.humandelivery.domain.model.entity.Location;
 import goorm.humandelivery.domain.model.entity.TaxiDriverStatus;
 import goorm.humandelivery.domain.model.entity.TaxiType;
@@ -129,7 +128,6 @@ public class WebSocketTaxiDriverController {
 		String taxiDriverLoginId = principal.getName();
 
 		log.info("[acceptTaxiCall 호출] callId : {}, taxiDriverId : {}", callId, taxiDriverLoginId);
-
 
 		CallStatus callStatus = redisService.getCallStatus(callId);
 

@@ -32,7 +32,8 @@ public class SecurityConfig {
 					"/api/v1/taxi-driver/token-info",
 					"/api/v1/customer",
 					"/api/v1/customer/auth-tokens",
-					"/ws/**"
+					"/ws/**",
+					"/actuator/**"
 				).permitAll()
 				.anyRequest().authenticated()
 			);

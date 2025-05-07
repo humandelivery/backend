@@ -15,7 +15,6 @@ spring:
         show_sql: true
         format_sql: true
 
-
   kafka:
     bootstrap-servers: localhost:9092,localhost:9093,localhost:9094  # Kafka 브로커들
     consumer:
@@ -64,6 +63,8 @@ jwt:
     accessTokenValidTime: "3600000"
 
 
+
+
 logging:
   level:
     org:
@@ -89,4 +90,17 @@ logging:
 
 
 
+# 스프링 액츄에이터의 모든 메트릭 노출 활성화
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 
+
+
+# 톰캣 메트릭 추가
+server:
+  tomcat:
+    mbeanregistry:
+      enabled: true

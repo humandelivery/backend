@@ -3,6 +3,7 @@ package goorm.humandelivery.infrastructure.messaging;
 import java.util.List;
 
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import goorm.humandelivery.common.exception.NoAvailableTaxiException;
