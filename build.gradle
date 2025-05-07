@@ -55,6 +55,8 @@ dependencies {
 
 	// 마이크로미터 프로메테우스 구현체
 	implementation 'io.micrometer:micrometer-registry-prometheus'
+
+	// 스프링부트의 모니터링 데이터를 제공해주고.
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 //	implementation 'org.springframework.boot:spring-boot-starter-amqp'
 

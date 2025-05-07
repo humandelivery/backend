@@ -26,11 +26,15 @@ import lombok.extern.slf4j.Slf4j;
 public class MessagingService {
 
 	private static final String LOCATION_TO_USER = "/queue/update-taxidriver-location";
-	private static final String RIDE_STATUS_TO_USER = "/queue/ride-status";
 	private static final String DISPATCH_DRIVING_STATUS_MESSAGE = "/queue/ride-status";
 	private static final String DISPATCH_DRIVING_RESULT_MESSAGE = "/queue/driving-result";
-	private static final String DISPATCH_FAIL_MESSAGE_TO_USER = "/queue/dispatch-error";
 	private static final String DISPATCH_FAIL_MESSAGE_TO_TAXI_DRIVER = "/queue/dispatch-canceled";
+
+
+	public static final String DISPATCH_SUCCESS_TO_USER = "/queue/dispatch-status";
+	private static final String DISPATCH_FAIL_MESSAGE_TO_USER = "/queue/dispatch-error";
+	public static final String DRIVING_FINISH_TO_USER = "/queue/driving-finish";
+	public static final String DRIVING_START_TO_USER = "/queue/driving-start";
 
 	private final SimpMessagingTemplate messagingTemplate;
 	private final RedisService redisService;
@@ -44,6 +48,8 @@ public class MessagingService {
 	public void sendLocation(String taxiDriverLoginId, TaxiDriverStatus status, TaxiType taxiType,
 		String customerLoginId, Location location
 	) {
+
+
 		log.info("[MessagingService sendMessage : 호출] 택시기사아이디 : {}, 택시기사상태 : {}, 택시타입 : {},  고객아이디 : {} ",
 			taxiDriverLoginId, status, taxiType, customerLoginId);
 
@@ -83,15 +89,17 @@ public class MessagingService {
 
 	}
 
+	// 운행 시작 메세지 to User
 	public void sendDrivingStartMessageToUser(String customerLoginId, boolean isDrivingStarted,
 		boolean isDrivingFinished) {
 		messagingTemplate.convertAndSendToUser(
 			customerLoginId,
-			DISPATCH_DRIVING_STATUS_MESSAGE,
+			DRIVING_START_TO_USER,
 			new DrivingInfoResponse(isDrivingStarted, isDrivingFinished)
 		);
 	}
 
+	// 운행 시작 메세지 to Taxi Driver
 	public void sendDrivingStartMessageToTaxiDriver(String taxiDriverLoginId, boolean isDrivingStarted,
 		boolean isDrivingFinished) {
 		messagingTemplate.convertAndSendToUser(
@@ -101,10 +109,11 @@ public class MessagingService {
 		);
 	}
 
+	// 운행 종료 메세지 to User
 	public void sendDrivingCompletedMessageToUser(String customerLoginId, DrivingSummaryResponse response) {
 		messagingTemplate.convertAndSendToUser(
 			customerLoginId,
-			DISPATCH_DRIVING_STATUS_MESSAGE,
+			DRIVING_FINISH_TO_USER,
 			response
 		);
 	}
@@ -137,11 +146,12 @@ public class MessagingService {
 		);
 	}
 
+	// 배차 성공 메세지 To User
 	public void notifyDispatchSuccessToCustomer(String customerLoginId, String driverLoginId) {
 		TaxiDriverStatus driverStatus = redisService.getDriverStatus(driverLoginId);
 		messagingTemplate.convertAndSendToUser(
 			customerLoginId,
-			RIDE_STATUS_TO_USER,
+			DISPATCH_SUCCESS_TO_USER,
 			new MatchingSuccessResponse(driverStatus, driverLoginId)
 		);
 	}

@@ -21,4 +21,6 @@ public class Location {
 
 	@NotNull
 	private Double longitude;  // 경도
+
+
 }

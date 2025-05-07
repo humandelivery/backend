@@ -16,7 +16,9 @@ import goorm.humandelivery.domain.model.request.CreateDrivingInfoRequest;
 import goorm.humandelivery.domain.model.response.DrivingSummaryResponse;
 import goorm.humandelivery.domain.repository.DrivingInfoRepository;
 import goorm.humandelivery.domain.repository.MatchingRepository;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class DrivingInfoService {
@@ -53,9 +55,11 @@ public class DrivingInfoService {
 
 	@Transactional
 	public DrivingSummaryResponse finishDriving(Long callId, Location destination) {
+		log.info("[finishDriving.DrivingInfoService] 호출. Call ID : {}", callId);
 		Matching matching = matchingRepository.findMatchingByCallInfoId(callId)
 			.orElseThrow(MatchingEntityNotFoundException::new);
 
+		log.info("[finishDriving.DrivingInfoService] findDrivingInfoByMatching 쿼리 호출. Call ID : {}", callId);
 		DrivingInfo drivingInfo = drivingInfoRepository.findDrivingInfoByMatching(matching)
 			.orElseThrow(DrivingInfoEntityNotFoundException::new);
 
@@ -64,8 +68,10 @@ public class DrivingInfoService {
 		drivingInfo.finishDriving(destination, arrivingTime);
 
 		// 필요한 데이터만 조회해서 DTO 로 반환하자.
+		log.info("[finishDriving.DrivingInfoService] findDrivingSummaryResponse 쿼리 호출. Call ID : {}", callId);
 		return drivingInfoRepository.findDrivingSummaryResponse(drivingInfo)
 			.orElseThrow(DrivingInfoEntityNotFoundException::new);
 
 	}
+
 }

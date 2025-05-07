@@ -11,15 +11,16 @@ import lombok.Setter;
 @Getter
 public class CallAcceptResponse {
 
+	private Long callId;
 	private String customerName;
 	private String customerLoginId;
 	private String customerPhoneNumber;
 	private Location expectedOrigin;
 	private Location expectedDestination;
 
-	@Builder
-	public CallAcceptResponse(String customerName, String customerLoginId, String customerPhoneNumber,
+	public CallAcceptResponse(Long callId, String customerName, String customerLoginId, String customerPhoneNumber,
 		Location expectedOrigin, Location expectedDestination) {
+		this.callId = callId;
 		this.customerName = customerName;
 		this.customerLoginId = customerLoginId;
 		this.customerPhoneNumber = customerPhoneNumber;

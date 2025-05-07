@@ -14,4 +14,6 @@ public class MatchingSuccessResponse {
 
 	private TaxiDriverStatus taxiDriverStatus;
 	private String taxiDriverLoginId;
+
+
 }

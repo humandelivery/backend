@@ -4,10 +4,12 @@ import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 
+import goorm.humandelivery.common.exception.AlreadyAssignedCallException;
 import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
 import goorm.humandelivery.common.exception.CallInfoEntityNotFoundException;
 import goorm.humandelivery.common.exception.CustomerNotAssignedException;
 import goorm.humandelivery.common.exception.DrivingInfoEntityNotFoundException;
+import goorm.humandelivery.common.exception.IncorrectTaxiDriverStatusException;
 import goorm.humandelivery.common.exception.LocationNotInRedisException;
 import goorm.humandelivery.common.exception.MatchingEntityNotFoundException;
 import goorm.humandelivery.common.exception.NoAvailableTaxiException;
@@ -100,6 +102,20 @@ public class StompExceptionAdvice {
 	public ErrorResponse handleDrivingInfoEntityNotFoundException(DrivingInfoEntityNotFoundException ex) {
 		log.error("exception: {}", ex.getClass());
 		return new ErrorResponse("DrivingInfoEntityNotFoundException", ex.getMessage());
+	}
+
+	@MessageExceptionHandler(IncorrectTaxiDriverStatusException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleIncorrectTaxiDriverStatusException(IncorrectTaxiDriverStatusException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("IncorrectTaxiDriverStatusException", ex.getMessage());
+	}
+
+	@MessageExceptionHandler(AlreadyAssignedCallException.class)
+	@SendToUser("/queue/errors") // /user/queue/errors
+	public ErrorResponse handleAlreadyAssignedCallException(AlreadyAssignedCallException ex) {
+		log.error("exception: {}", ex.getClass());
+		return new ErrorResponse("AlreadyAssignedCallException", ex.getMessage());
 	}
 
 }

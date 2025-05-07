@@ -16,6 +16,7 @@ public interface CallInfoRepository extends JpaRepository<CallInfo, Long> {
 
 	@Query(
 		"select new goorm.humandelivery.domain.model.response.CallAcceptResponse("
+			+ "c.id, "
 			+ "cs.name,"
 			+ " cs.loginId,"
 			+ " cs.phoneNumber,"
