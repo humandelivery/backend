@@ -45,15 +45,29 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
 	@Override
 	public void configureMessageBroker(MessageBrokerRegistry config) {
 		// setApplicationDestinationPrefixes 메세지는 컨트롤러의 @MessageMapping 메서드로 라우팅
-		config.setApplicationDestinationPrefixes("/app");
 
 		/**
 		 * 	simpleBroker(내장브로커) 사용 -> 추후 외부 브로커 시스템으로 변경(튜닝 포인트)
 		 * 	/topic : 관례상 pup/sub 구조에서 사용
 		 * 	/queue : 관례상 일대일 메세지 전송에서 사용.
 		 */
-		config.enableSimpleBroker("/topic", "/queue");
-		config.setUserDestinationPrefix("/user");
+
+		//config.enableSimpleBroker("/topic", "/queue");
+
+		/**
+		 * RabbitMQ 를 외부 메세지 브로커로 사용.
+		 */
+		config.enableStompBrokerRelay("/queue", "/topic")
+			.setRelayHost("localhost")
+			.setRelayPort(61613)
+			.setClientLogin("guest")
+			.setClientPasscode("guest")
+			.setSystemLogin("guest")
+			.setSystemPasscode("guest")
+			.setSystemHeartbeatSendInterval(10000)
+			.setSystemHeartbeatReceiveInterval(10000);
+
+		config.setApplicationDestinationPrefixes("/app");
 
 	}
 

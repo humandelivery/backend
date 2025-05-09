@@ -8,7 +8,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -33,6 +33,12 @@ spring:
     username: root
     password: root
 
+    hikari:
+      maximum-pool-size: 400
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 60000
+
 
 #  datasource:
 #    url: jdbc:h2:file:C:/_Workplace/Spring_workplace/HumanDelivery/database/h2db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
@@ -53,6 +59,17 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  web:
+    socket:
+      message-broker:
+        enabled: true
 
 jwt:
   secret:
@@ -99,5 +116,10 @@ management:
 # 톰캣 메트릭 추가
 server:
   tomcat:
-    mbeanregistry:
-      enabled: true
+    max-connections: 500     # 동시에 처리 가능한 최대 커넥션 수
+    accept-count: 200         # 요청 대기 큐 크기 (초과 시 reset 발생 가능)
+    threads:
+      max: 300
+      min-spare: 50
+
+

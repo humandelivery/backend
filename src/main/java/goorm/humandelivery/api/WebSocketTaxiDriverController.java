@@ -124,15 +124,10 @@ public class WebSocketTaxiDriverController {
 	@MessageMapping("/accept-call")
 	@SendToUser("/queue/accept-call-result")
 	public CallAcceptResponse acceptTaxiCall(CallAcceptRequest request, Principal principal) {
-		log.info("[acceptTaxiCall 호출.. taxidriverId : {}]", principal.getName());
 
-
-		Long callId = request.getCallId();
 		String taxiDriverLoginId = principal.getName();
-
+		Long callId = request.getCallId();
 		log.info("[acceptTaxiCall 호출] callId : {}, taxiDriverId : {}", callId, taxiDriverLoginId);
-
-		//CallStatus callStatus = redisService.getCallStatus(callId);
 
 		TaxiDriverStatus driverStatus = redisService.getDriverStatus(taxiDriverLoginId);
 

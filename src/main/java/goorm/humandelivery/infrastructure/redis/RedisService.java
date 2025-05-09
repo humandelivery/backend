@@ -377,7 +377,7 @@ public class RedisService {
 			          return 4 -- SETNX 실패 (다른 사람이 먼저 수락)
 			      end
 			
-			      -- 여기서 상태 변화 시키면 될듯
+			      -- 여기서 상태 변화까지 시켜야 한다.
 			    redis.call('SET', KEYS[1], ARGV[4]) -- callStatus = DONE
 				redis.call('SET', KEYS[3], ARGV[5]) -- driverStatus = RESERVED
 				redis.call('SET', KEYS[2], ARGV[6]) -- driverCall = callId

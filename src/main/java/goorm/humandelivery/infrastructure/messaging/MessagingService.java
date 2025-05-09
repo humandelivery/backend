@@ -123,6 +123,7 @@ public class MessagingService {
 			taxiDriverLoginId);
 
 		log.info("DrivingSummaryResponse : {}", response.toString());
+
 		messagingTemplate.convertAndSendToUser(
 			taxiDriverLoginId,
 			DISPATCH_DRIVING_RESULT_MESSAGE,
