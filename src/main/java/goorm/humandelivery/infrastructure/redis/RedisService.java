@@ -15,6 +15,7 @@ import org.springframework.data.geo.Point;
 import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.data.redis.core.GeoOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.domain.geo.GeoLocation;
 import org.springframework.stereotype.Service;
 
@@ -71,7 +72,6 @@ public class RedisService {
 			.stream()
 			.findFirst()
 			.orElseThrow(() -> new LocationNotInRedisException(key, loginId));
-
 
 		return new Location(point.getY(), point.getX()); // 위도, 경도 순서
 	}
@@ -259,16 +259,16 @@ public class RedisService {
 			removeFromLocation(taxiDriverLoginId, taxiType, TaxiDriverStatus.ON_DRIVING);
 
 			// redis 에 저장된 콜 상태 변경  SENT -> DONE
-			Optional<String> callIdOptional = getCallIdByDriverId(taxiDriverLoginId);
+		   Optional<String> callIdOptional = getCallIdByDriverId(taxiDriverLoginId);
 
-			if (callIdOptional.isEmpty()) {
+			/*if (callIdOptional.isEmpty()) {
 				throw new RedisKeyNotFoundException("현재 기사가 가진 콜 정보가 Redis 에 존재하지 않습니다.");
-			}
+			}*/
 
-			Long callId = Long.valueOf(callIdOptional.get());
+			 Long callId = Long.valueOf(callIdOptional.get());
 
 			// 해당 택시기사가 담당받은 콜 정보를 redis 에 저장.
-			setCallWith(callId, CallStatus.DONE);
+			//setCallWith(callId, CallStatus.DONE);
 
 			// 콜에 대한 거부 택시 기사목록 삭제
 			removeRejectedDriversForCall(callId);
@@ -339,5 +339,61 @@ public class RedisService {
 
 		return getLocation(key, driverLoginId);
 
+	}
+
+	public boolean hasAssignedCall(String taxiDriverLoginId) {
+		String key = RedisKeyParser.assignCallToDriver(taxiDriverLoginId);
+		return redisTemplate.hasKey(key);
+	}
+
+	public boolean atomicAcceptCall(Long callId, String driverLoginId) {
+		String callStatusKey = RedisKeyParser.callStatus(callId); // e.g. call:123:status
+		String driverCallKey = RedisKeyParser.assignCallToDriver(
+			driverLoginId);  // e.g. taxidriver:driver001@example.com:call
+		String driverStatusKey = RedisKeyParser.taxiDriverStatus(
+			driverLoginId); // e.g. taxidriver:driver001@example.com:status
+
+		String lockKey = String.valueOf(callId);
+
+		String lua = """
+			      local callStatus = redis.call('GET', KEYS[1])
+			      local driverCall = redis.call('EXISTS', KEYS[2])
+			      local driverStatus = redis.call('GET', KEYS[3])
+			
+			      if callStatus ~= ARGV[1] then
+			          return 1 -- 콜 상태가 SENT 아님
+			      end
+			
+			      if driverCall == 1 then
+			          return 2 -- 이미 기사에게 콜 할당됨
+			      end
+			
+			      if driverStatus ~= ARGV[2] then
+			          return 3 -- 기사 상태가 AVAILABLE 아님
+			      end
+			
+			      local success = redis.call('SETNX', KEYS[4], ARGV[3])
+			      if success == 0 then
+			          return 4 -- SETNX 실패 (다른 사람이 먼저 수락)
+			      end
+			
+			      -- 여기서 상태 변화까지 시켜야 한다.
+			    redis.call('SET', KEYS[1], ARGV[4]) -- callStatus = DONE
+				redis.call('SET', KEYS[3], ARGV[5]) -- driverStatus = RESERVED
+				redis.call('SET', KEYS[2], ARGV[6]) -- driverCall = callId
+			      return 0;
+			""";
+
+		DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+		script.setScriptText(lua);
+		script.setResultType(Long.class);
+
+		List<String> keys = List.of(
+			callStatusKey, driverCallKey, driverStatusKey, lockKey
+		);
+		List<String> args = List.of("SENT", "AVAILABLE", driverLoginId, "DONE", "RESERVED", String.valueOf(callId));
+
+		Long result = redisTemplate.execute(script, keys, args.toArray());
+		return result != null && result == 0L;
 	}
 }

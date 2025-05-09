@@ -27,4 +27,9 @@ public class CallInfoService {
 	public String findCustomerLoginIdById(Long id) {
 		return callInfoRepository.findCustomerLoginIdByCallId(id).orElseThrow(CallInfoEntityNotFoundException::new);
 	}
+
+	@Transactional
+	public void deleteCallById(Long callId) {
+		callInfoRepository.deleteById(callId);
+	}
 }

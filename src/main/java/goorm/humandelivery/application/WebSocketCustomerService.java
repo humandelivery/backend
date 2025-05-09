@@ -2,12 +2,10 @@ package goorm.humandelivery.application;
 
 import org.springframework.stereotype.Service;
 
-import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.entity.Customer;
 import goorm.humandelivery.domain.model.request.CallMessageRequest;
 import goorm.humandelivery.domain.repository.CallInfoRepository;
 import goorm.humandelivery.infrastructure.messaging.KafkaMessageQueueService;
-import goorm.humandelivery.infrastructure.redis.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,11 +24,11 @@ public class WebSocketCustomerService {
 	public void processMessage(CallMessageRequest request, String senderId) {
 		Long callId = saveCallAndGetCallId(request, senderId);
 		log.info("콜 내용 DB에 저장 완료");
-		messageQueueService.enqueue(request.toQueueMessage(callId));
+		messageQueueService.enqueue(request.toQueueMessage(callId, senderId));
 		log.info("콜 요청을 카프카 메시지 큐에 등록");
 	}
 
-	public Long saveCallAndGetCallId(CallMessageRequest request, String senderId){
+	public Long saveCallAndGetCallId(CallMessageRequest request, String senderId) {
 		Customer customer = customerService.findCustomerByLoginId(senderId);
 		return callRepository.save(request.toCallInfo(customer)).getId();
 	}
@@ -38,6 +36,5 @@ public class WebSocketCustomerService {
 	public void deleteCallById(Long callId) {
 		callRepository.deleteById(callId);
 	}
-
 
 }

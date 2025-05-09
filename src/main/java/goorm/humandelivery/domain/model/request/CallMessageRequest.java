@@ -23,8 +23,8 @@ public class CallMessageRequest {
 	private  TaxiType taxiType;
 	private  Integer retryCount;
 
-	public CallMessage toQueueMessage(Long callId) {
-		return new CallMessage(callId, expectedOrigin, expectedDestination, taxiType, retryCount);
+	public CallMessage toQueueMessage(Long callId, String customerLoginId) {
+		return new CallMessage(callId, customerLoginId, expectedOrigin, expectedDestination, taxiType, retryCount);
 	}
 
 	public CallInfo toCallInfo(Customer customer) {

@@ -107,6 +107,8 @@ public class TaxiDriverService {
 
 	@Transactional
 	public TaxiDriverStatus changeStatus(String loginId, TaxiDriverStatus status) {
+
+		log.info("[changeStatus.taxiDriverRepository.findByLoginId] 택시기사 조회. 택시기사 ID : {}", loginId);
 		TaxiDriver taxiDriver = taxiDriverRepository.findByLoginId(loginId)
 			.orElseThrow(TaxiDriverEntityNotFoundException::new);
 

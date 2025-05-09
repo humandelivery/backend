@@ -12,7 +12,9 @@ import goorm.humandelivery.application.CallInfoService;
 import goorm.humandelivery.application.DrivingInfoService;
 import goorm.humandelivery.application.MatchingService;
 import goorm.humandelivery.application.TaxiDriverService;
+import goorm.humandelivery.common.exception.AlreadyAssignedCallException;
 import goorm.humandelivery.common.exception.CallAlreadyCompletedException;
+import goorm.humandelivery.common.exception.IncorrectTaxiDriverStatusException;
 import goorm.humandelivery.common.exception.OffDutyLocationUpdateException;
 import goorm.humandelivery.domain.model.entity.CallStatus;
 import goorm.humandelivery.domain.model.entity.DrivingInfo;
@@ -122,24 +124,48 @@ public class WebSocketTaxiDriverController {
 	@MessageMapping("/accept-call")
 	@SendToUser("/queue/accept-call-result")
 	public CallAcceptResponse acceptTaxiCall(CallAcceptRequest request, Principal principal) {
-		log.info("[acceptTaxiCall 호출]");
 
-		Long callId = request.getCallId();
 		String taxiDriverLoginId = principal.getName();
-
+		Long callId = request.getCallId();
 		log.info("[acceptTaxiCall 호출] callId : {}, taxiDriverId : {}", callId, taxiDriverLoginId);
 
-		CallStatus callStatus = redisService.getCallStatus(callId);
+		TaxiDriverStatus driverStatus = redisService.getDriverStatus(taxiDriverLoginId);
 
-		// 이미 배차가 완료된 경우..
+		// AVAILABLE 상태의 택시기사가 아닌 경우
+		if (driverStatus != TaxiDriverStatus.AVAILABLE) {
+			log.info("[acceptTaxiCall.CallAcceptResponse] AVAILABLE 상태의 택시기사가 아닙니다.. 택시기사 : {}, 콜ID : {}, 택시기사 상태 : {}",
+				taxiDriverLoginId, callId, driverStatus.name());
+			throw new IncorrectTaxiDriverStatusException();
+		}
+
+
+		// 이미 콜이 할당된 택시기사인경우
+		if (redisService.hasAssignedCall(taxiDriverLoginId)) {
+			log.info("[acceptTaxiCall.CallAcceptResponse] 이미 콜이 할당된 택시기사입니다.. 택시기사 : {}, 콜ID : {}, 택시기사 상태 : {}",
+				taxiDriverLoginId, callId, driverStatus.name());
+			throw new AlreadyAssignedCallException();
+		}
+
+
+		// 상태가 변하기 전에 요청을 보내는 경우 중복이 발생한다.
+
+/*		// 이미 배차가 완료된 경우..
 		if (callStatus != CallStatus.SENT) {
 			log.info("[acceptTaxiCall.CallAcceptResponse] 완료된 콜에 대한 배차 신청. 택시기사 : {}, 콜ID : {}",
 				taxiDriverLoginId, callId);
 			throw new CallAlreadyCompletedException();
-		}
+		}*/
 
 		// 배차 등록 시도
-		boolean isSuccess = redisService.tryAcceptCall(String.valueOf(callId), taxiDriverLoginId);
+/*		boolean isSuccess = redisService.tryAcceptCall(String.valueOf(callId), taxiDriverLoginId);
+		if (!isSuccess) {
+			log.info("[acceptTaxiCall.CallAcceptResponse] 완료된 콜에 대한 배차 신청. 택시기사 : {}, 콜ID : {}",
+				taxiDriverLoginId, callId);
+			throw new CallAlreadyCompletedException();
+		}*/
+
+		// 배차 등록 시도
+		boolean isSuccess = redisService.atomicAcceptCall(callId, taxiDriverLoginId);
 		if (!isSuccess) {
 			log.info("[acceptTaxiCall.CallAcceptResponse] 완료된 콜에 대한 배차 신청. 택시기사 : {}, 콜ID : {}",
 				taxiDriverLoginId, callId);
@@ -150,12 +176,14 @@ public class WebSocketTaxiDriverController {
 		Long taxiDriverId = taxiDriverService.findIdByLoginId(taxiDriverLoginId);
 		matchingService.create(new CreateMatchingRequest(callId, taxiDriverId));
 
+
 		TaxiType taxiType = redisService.getDriversTaxiType(taxiDriverLoginId);
 		TaxiDriverStatus taxiDriverStatus = taxiDriverService.changeStatus(taxiDriverLoginId,
 			TaxiDriverStatus.RESERVED);
 
+
 		// 상태 변경에 따른 redis 처리
-		redisService.assignCallToDriver(callId, taxiDriverLoginId);
+		// redisService.assignCallToDriver(callId, taxiDriverLoginId);
 		redisService.handleTaxiDriverStatusInRedis(taxiDriverLoginId, taxiDriverStatus, taxiType);
 
 		// CallAcceptResponse 응답하기.
@@ -165,6 +193,10 @@ public class WebSocketTaxiDriverController {
 
 		// 고객에게 배차되엇다고 상태 전달하기
 		messagingService.notifyDispatchSuccessToCustomer(callAcceptResponse.getCustomerLoginId(), taxiDriverLoginId);
+
+
+		log.info("[acceptTaxiCall 응답 보내기 전..... taxidriverId : {}]", principal.getName());
+
 
 		return callAcceptResponse;
 	}
@@ -192,6 +224,19 @@ public class WebSocketTaxiDriverController {
 	@MessageMapping("/ride-start")
 	public void createDrivingInfo(CallIdRequest request, Principal principal) {
 
+		log.info("[createDrivingInfo.WebSocketTaxiDriverController] 고객 승차.  콜 ID : {}, 택시기사 ID : {}", request.getCallId(),
+			principal.getName());
+
+		/**
+		 * TODO : 검증 필요. Matching Id와 callId가 같은지 확인해야함
+		 */
+
+		Long callId = request.getCallId();
+		String taxiDriverLoginId = principal.getName();
+
+
+		// 해당 택시기사가
+
 		/**
 		 * 손님 타고, 택시기사가 손님 탑승 확인 요청을 보냄. 이후 운행정보 엔티티 생성.
 		 */
@@ -205,7 +250,6 @@ public class WebSocketTaxiDriverController {
 		DrivingInfo savedDrivingInfo = drivingInfoService.create(drivingInfoRequest);
 
 		// 택시 상태 변경
-		String taxiDriverLoginId = principal.getName();
 		TaxiDriverStatus changedStatus = taxiDriverService.changeStatus(taxiDriverLoginId,
 			TaxiDriverStatus.ON_DRIVING);
 
@@ -214,7 +258,6 @@ public class WebSocketTaxiDriverController {
 		redisService.handleTaxiDriverStatusInRedis(taxiDriverLoginId, changedStatus, taxiType);
 
 		// 운행 시작 메세지 전달
-		Long callId = request.getCallId();
 		String customerLoginId = callInfoService.findCustomerLoginIdById(callId);
 		boolean isDrivingStarted = savedDrivingInfo.isDrivingStarted();
 
@@ -224,7 +267,7 @@ public class WebSocketTaxiDriverController {
 	}
 
 	/**
-	 * 승객 하차 완료 요청 처리
+	 * 승객 하차 완료 요청 처리 /app/taxi-driver/ride-finish
 	 */
 	@MessageMapping("/ride-finish")
 	public void finishDriving(CallIdRequest request, Principal principal) {
@@ -233,23 +276,36 @@ public class WebSocketTaxiDriverController {
 		 * 손님이 하차했다. 드라이빙 인포 조회해서 상태 바꾸고, 택시기사 상태 바꿔야한다.
 		 * 그리고 손님과 택시기사에게 DrivingInfoResponse 를 전달해야 한다.
 		 */
+		log.info("[finishDriving.WebSocketTaxiDriverController] 하차 요청.  콜 ID : {}, 택시기사 ID : {}", request.getCallId(),
+			principal.getName());
+
+		/**
+		 * TODO : DrivingInfo가 있는지 확인하고, 택시기사 확인하고, 고객 확인하고 -> 이후에 하차 요청 승인
+		 */
 
 		Long callId = request.getCallId();
 		String taxiDriverLoginId = principal.getName();
+
 
 		Location location = redisService.getDriverLocation(taxiDriverLoginId);
 
 		DrivingSummaryResponse response = drivingInfoService.finishDriving(callId, location);
 
 		// 택시기사 상태 바꾸기 -> 빈차
+
+		log.info("[finishDriving.WebSocketTaxiDriverController] 택시기사 DB 상태 바꾸기 호출 전.  콜 ID : {}, 택시기사 ID : {}", request.getCallId(),
+			principal.getName());
 		TaxiDriverStatus changedStatus = taxiDriverService.changeStatus(taxiDriverLoginId,
 			TaxiDriverStatus.AVAILABLE);
 
-		// 택시기사 상태 바꾸기 -> redis
+
+		log.info("[finishDriving.WebSocketTaxiDriverController] 택시기사 REDIS 상태 바꾸기 호출 전.  콜 ID : {}, 택시기사 ID : {}", request.getCallId(),
+			principal.getName());
 		TaxiType taxiType = redisService.getDriversTaxiType(taxiDriverLoginId);
 		redisService.handleTaxiDriverStatusInRedis(taxiDriverLoginId, changedStatus, taxiType);
 
-		// 메세지 전송
+		log.info("[finishDriving.WebSocketTaxiDriverController] 메세지 전송 전.  콜 ID : {}, 택시기사 ID : {}", request.getCallId(),
+			principal.getName());
 		messagingService.sendDrivingCompletedMessageToUser(response.getCustomerLoginId(), response);
 		messagingService.sendDrivingCompletedMessageToTaxiDriver(taxiDriverLoginId, response);
 	}
