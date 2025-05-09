@@ -1,6 +1,10 @@
 # 실시간 택시 배차 시스템 
-![인간배달 로고](image.png)
+<p align="center">
+  <img src="image.png" alt="인간배달 로고" width="400"/>
+</p>
 
+## 발표자료
+[발표 PPT](https://www.miricanvas.com/v/14ksxoz)
 ## 팀원 소개
 
 | 이름 | 역할          | GitHub |
