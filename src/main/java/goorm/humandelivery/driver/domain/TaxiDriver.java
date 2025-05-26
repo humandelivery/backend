@@ -52,6 +52,9 @@ public class TaxiDriver extends BaseEntity {
     }
 
     public TaxiDriverStatus changeStatus(TaxiDriverStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("상태는 null일 수 없습니다.");
+        }
         this.status = status;
         return this.status;
     }
