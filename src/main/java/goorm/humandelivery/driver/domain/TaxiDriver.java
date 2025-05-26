@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
+
 public class TaxiDriver extends BaseEntity {
 
     @Id
@@ -39,7 +40,7 @@ public class TaxiDriver extends BaseEntity {
     @Enumerated(value = EnumType.STRING)
     private TaxiDriverStatus status;
 
-    @Builder
+    @Builder(toBuilder = true)
     private TaxiDriver(Taxi taxi, String loginId, String password, String name, String licenseCode, String phoneNumber, TaxiDriverStatus status) {
         this.taxi = taxi;
         this.loginId = loginId;
