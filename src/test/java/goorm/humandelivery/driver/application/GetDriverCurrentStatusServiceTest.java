@@ -3,7 +3,7 @@ package goorm.humandelivery.driver.application;
 import goorm.humandelivery.driver.application.port.out.LoadTaxiDriverPort;
 import goorm.humandelivery.driver.domain.TaxiDriver;
 import goorm.humandelivery.driver.domain.TaxiDriverStatus;
-import goorm.humandelivery.global.exception.TaxiDriverEntityNotFoundException;
+import goorm.humandelivery.global.exception.DriverEntityNotFoundException;
 import goorm.humandelivery.shared.application.port.out.GetValuePort;
 import goorm.humandelivery.shared.application.port.out.SetValueWithTtlPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +69,7 @@ class GetDriverCurrentStatusServiceTest {
         when(getValuePort.getValue("taxidriver:driver1:status")).thenReturn(null);
         when(loadTaxiDriverPort.findByLoginId("driver1")).thenReturn(Optional.empty());
 
-        assertThrows(TaxiDriverEntityNotFoundException.class, () -> service.getCurrentStatus("driver1"));
+        assertThrows(DriverEntityNotFoundException.class, () -> service.getCurrentStatus("driver1"));
     }
 
     @Test

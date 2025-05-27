@@ -5,7 +5,7 @@ import goorm.humandelivery.driver.domain.TaxiDriver;
 import goorm.humandelivery.driver.dto.request.LoginTaxiDriverRequest;
 import goorm.humandelivery.global.exception.IncorrectPasswordException;
 import goorm.humandelivery.global.exception.JwtTokenGenerationException;
-import goorm.humandelivery.global.exception.TaxiDriverEntityNotFoundException;
+import goorm.humandelivery.global.exception.DriverEntityNotFoundException;
 import goorm.humandelivery.shared.dto.response.JwtResponse;
 import goorm.humandelivery.shared.security.port.out.JwtTokenProviderPort;
 import org.junit.jupiter.api.DisplayName;
@@ -90,7 +90,7 @@ class LoginTaxiDriverServiceTest {
         given(loadTaxiDriverPort.findByLoginId("driver1")).willReturn(Optional.empty());
         LoginTaxiDriverRequest request = LoginTaxiDriverRequest.builder().loginId("driver1").password("password").build();
 
-        assertThrows(TaxiDriverEntityNotFoundException.class, () -> loginTaxiDriverService.login(request));
+        assertThrows(DriverEntityNotFoundException.class, () -> loginTaxiDriverService.login(request));
     }
 
     @Test

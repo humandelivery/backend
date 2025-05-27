@@ -3,7 +3,7 @@ package goorm.humandelivery.driver.application;
 import goorm.humandelivery.driver.application.port.out.LoadTaxiDriverPort;
 import goorm.humandelivery.driver.domain.TaxiDriver;
 import goorm.humandelivery.driver.domain.TaxiDriverStatus;
-import goorm.humandelivery.global.exception.TaxiDriverEntityNotFoundException;
+import goorm.humandelivery.global.exception.DriverEntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,7 +58,7 @@ class ChangeTaxiDriverStatusServiceTest {
         given(loadTaxiDriverPort.findByLoginId("invalidDriver")).willReturn(Optional.empty());
 
         // when & then
-        assertThrows(TaxiDriverEntityNotFoundException.class, () -> {
+        assertThrows(DriverEntityNotFoundException.class, () -> {
             changeTaxiDriverStatusService.changeStatus("invalidDriver", TaxiDriverStatus.ON_DRIVING);
         });
     }

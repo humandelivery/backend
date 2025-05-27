@@ -3,7 +3,7 @@ package goorm.humandelivery.driver.application;
 import goorm.humandelivery.driver.application.port.out.LoadTaxiDriverTypePort;
 import goorm.humandelivery.driver.domain.TaxiType;
 import goorm.humandelivery.driver.dto.response.TaxiTypeResponse;
-import goorm.humandelivery.global.exception.TaxiDriverEntityNotFoundException;
+import goorm.humandelivery.global.exception.DriverEntityNotFoundException;
 import goorm.humandelivery.shared.application.port.out.GetValuePort;
 import goorm.humandelivery.shared.application.port.out.SetValueWithTtlPort;
 import goorm.humandelivery.shared.redis.RedisKeyParser;
@@ -85,6 +85,6 @@ class GetDriverCurrentTaxiTypeServiceTest {
         when(getValuePort.getValue(key)).thenReturn(null);
         when(loadTaxiDriverTypePort.findTaxiDriversTaxiTypeByLoginId(driverId)).thenReturn(Optional.empty());
 
-        assertThrows(TaxiDriverEntityNotFoundException.class, () -> service.getCurrentTaxiType(driverId));
+        assertThrows(DriverEntityNotFoundException.class, () -> service.getCurrentTaxiType(driverId));
     }
 }

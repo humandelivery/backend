@@ -6,7 +6,7 @@ import goorm.humandelivery.driver.domain.TaxiDriver;
 import goorm.humandelivery.driver.dto.request.LoginTaxiDriverRequest;
 import goorm.humandelivery.global.exception.IncorrectPasswordException;
 import goorm.humandelivery.global.exception.JwtTokenGenerationException;
-import goorm.humandelivery.global.exception.TaxiDriverEntityNotFoundException;
+import goorm.humandelivery.global.exception.DriverEntityNotFoundException;
 import goorm.humandelivery.shared.dto.response.JwtResponse;
 import goorm.humandelivery.shared.security.port.out.JwtTokenProviderPort;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +39,9 @@ public class LoginTaxiDriverService implements LoginTaxiDriverUseCase {
         }
 
         TaxiDriver taxiDriver = loadTaxiDriverPort.findByLoginId(loginId)
-                .orElseThrow(TaxiDriverEntityNotFoundException::new);
+                .orElseThrow(DriverEntityNotFoundException::new);
+
+
 
         if (!bCryptPasswordEncoder.matches(password, taxiDriver.getPassword())) {
             throw new IncorrectPasswordException();
